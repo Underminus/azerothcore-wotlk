@@ -24,7 +24,7 @@ ExternalProject_Add(
         GIT_REPOSITORY
         https://github.com/Helias/googletest.git
         GIT_TAG
-        main
+        release-1.12.1
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""

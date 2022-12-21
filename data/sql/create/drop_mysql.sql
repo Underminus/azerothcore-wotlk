@@ -1,21 +1,21 @@
-REVOKE ALL PRIVILEGES ON * . * FROM 'acore'@'localhost';
+REVOKE ALL PRIVILEGES ON * . * FROM 'wobgob'@'localhost';
 
-REVOKE ALL PRIVILEGES ON `acore_world` . * FROM 'acore'@'localhost';
+REVOKE ALL PRIVILEGES ON `arcade_world` . * FROM 'wobgob'@'localhost';
 
-REVOKE GRANT OPTION ON `acore_world` . * FROM 'acore'@'localhost';
+REVOKE GRANT OPTION ON `arcade_world` . * FROM 'wobgob'@'localhost';
 
-REVOKE ALL PRIVILEGES ON `acore_characters` . * FROM 'acore'@'localhost';
+REVOKE ALL PRIVILEGES ON `arcade_characters` . * FROM 'wobgob'@'localhost';
 
-REVOKE GRANT OPTION ON `acore_characters` . * FROM 'acore'@'localhost';
+REVOKE GRANT OPTION ON `arcade_characters` . * FROM 'wobgob'@'localhost';
 
-REVOKE ALL PRIVILEGES ON `acore_auth` . * FROM 'acore'@'localhost';
+REVOKE ALL PRIVILEGES ON `arcade_auth` . * FROM 'wobgob'@'localhost';
 
-REVOKE GRANT OPTION ON `acore_auth` . * FROM 'acore'@'localhost';
+REVOKE GRANT OPTION ON `arcade_auth` . * FROM 'wobgob'@'localhost';
 
-DROP USER 'acore'@'localhost';
+DROP USER 'wobgob'@'localhost';
 
-DROP DATABASE IF EXISTS `acore_world`;
+DROP DATABASE IF EXISTS `arcade_world`;
 
-DROP DATABASE IF EXISTS `acore_characters`;
+DROP DATABASE IF EXISTS `arcade_characters`;
 
-DROP DATABASE IF EXISTS `acore_auth`;
+DROP DATABASE IF EXISTS `auth`;

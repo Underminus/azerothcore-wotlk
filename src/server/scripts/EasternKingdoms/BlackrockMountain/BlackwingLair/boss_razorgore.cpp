@@ -108,7 +108,25 @@ public:
 
         bool CanAIAttack(Unit const* target) const override
         {
-            return !(target->GetTypeId() == TYPEID_UNIT && !secondPhase) && !target->HasAura(SPELL_CONFLAGRATION);
+            if (target->GetTypeId() == TYPEID_UNIT && !secondPhase)
+            {
+                return false;
+            }
+
+            if (me->GetThreatMgr().GetThreatListSize() > 1)
+            {
+                ThreatContainer::StorageType::const_iterator lastRef = me->GetThreatMgr().GetOnlineContainer().GetThreatList().end();
+                --lastRef;
+                if (Unit* lastTarget = (*lastRef)->getTarget())
+                {
+                    if (lastTarget != target)
+                    {
+                        return !target->HasAura(SPELL_CONFLAGRATION);
+                    }
+                }
+            }
+
+            return true;
         }
 
         void EnterCombat(Unit* /*victim*/) override

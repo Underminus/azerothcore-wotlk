@@ -1,9 +1,9 @@
-REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'acore'@'localhost';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'wobgob'@'localhost';
 
-DROP USER 'acore'@'localhost';
+DROP USER 'wobgob'@'localhost';
 
-DROP DATABASE IF EXISTS `acore_world`;
+DROP DATABASE IF EXISTS `arcade_world`;
 
-DROP DATABASE IF EXISTS `acore_characters`;
+DROP DATABASE IF EXISTS `arcade_characters`;
 
-DROP DATABASE IF EXISTS `acore_auth`;
+DROP DATABASE IF EXISTS `auth`;

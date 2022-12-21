@@ -12,13 +12,14 @@
 #include "ItemTemplate.h"
 #include "Spell.h"
 #include "Pet.h"
+#include "SpellInfo.h"
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
 
 // DPS count as 1 offensive unit. Tanks and healers count as 1 defensive unit.
 // 5 man: 1 tank, 3 dps, 1 healer = 3 offensive units and 2 defensive units.
-const float Offence5M = 1 / 3.0f, Defence5M = 1 / 2.0f;
+const float Offense5M = 1 / 3.0f, Defense5M = 1 / 2.0f;
 
 enum WorldBosses
 {
@@ -118,7 +119,7 @@ class PlayerSettingsPlayerScript : public PlayerScript
 public:
     PlayerSettingsPlayerScript() : PlayerScript("PlayerSettingsPlayer") {}
 
-    
+
     void OnUpdateArea(Player* player, uint32 oldArea, uint32 newArea) override
     {
         if (!enabled)
@@ -242,7 +243,7 @@ public:
     void OnPlayerLeaveCombat(Player* player) override
     {
         Aura* lucifron = player->GetAura(SPELL_LUCIFRON_CURSE);
-        
+
         if (lucifron)
             player->RemoveAura(lucifron);
 
@@ -270,7 +271,7 @@ public:
 
         if (black)
             player->RemoveAura(black);
-        
+
         Aura* blue = player->GetAura(SPELL_BROOD_AFFLICTION_BLUE);
 
         if (blue)
@@ -280,12 +281,12 @@ public:
 
         if (bronze)
             player->RemoveAura(bronze);
-        
+
         Aura* green = player->GetAura(SPELL_BROOD_AFFLICTION_GREEN);
 
         if (green)
             player->RemoveAura(green);
-        
+
         Aura* red = player->GetAura(SPELL_BROOD_AFFLICTION_RED);
 
         if (red)
@@ -377,32 +378,32 @@ public:
 
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage) override
     {
-        if (check(attacker, target))
-            damage = modify(attacker, target, damage);
+        if (check(target, attacker))
+            damage = modify(target, attacker, damage);
     }
 
     void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& damage) override
     {
-        if (check(attacker, target))
-            damage = modify(attacker, target, damage);
+        if (check(target, attacker))
+            damage = modify(target, attacker, damage);
     }
 
-    void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage) override
+    void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage, SpellInfo const* spellInfo) override
     {
-        if (check(attacker, target))
-            damage = modify(attacker, target, damage);
+        if (check(target, attacker))
+            damage = modify(target, attacker, damage);
     }
 
-    void ModifyPeriodicHealthAurasTick(Unit* target, Unit* healer, uint32& gain) override
+    void ModifyPeriodicHealAurasTick(Unit* target, Unit* healer, uint32& heal, SpellInfo const* /*spellInfo*/) override
     {
-        if (check(healer, target))
-            gain = modify(healer, target, gain, false, true);
+        if (check(target, healer))
+            heal = modify(target, healer, heal, false, true);
     }
 
-    void ModifyHealRecieved(Unit* healer, Unit* target, uint32& gain) override
+    void ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, SpellInfo const* /*spellInfo*/) override
     {
-        if (check(healer, target))
-            gain = modify(healer, target, gain, false);
+        if (check(target, healer))
+            heal = modify(target, healer, heal, false);
     }
 
 private:
@@ -444,24 +445,21 @@ private:
         return true;
     }
 
-    uint32 modify(Unit* attacker, Unit* target, uint32 amount, bool isDamage = true, bool isPeriodicHeal = false)
+    uint32 modify(Unit* target, Unit* attacker, uint32 amount, bool isDamage = true, bool isPeriodicHeal = false)
     {
         PlayerSettingsMapInfo *mapInfo = target->GetMap()->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
         InstanceMap *instanceMap = ((InstanceMap *)sMapMgr->FindMap(target->GetMapId(), target->GetInstanceId()));
 
-        // is this needed? check is done before modify is called
-        // if (!instanceMap)
-        //     return amount;
-        if (!check(attacker, target))
+        if (!check(target, attacker))
             return amount;
 
         uint32 nplayers = std::max(mapInfo->nplayers, mapInfo->veto);
         uint32 maxPlayers = instanceMap->GetMaxPlayers();
 
-        float defence = Defence5M;
+        float defense = Defense5M;
 
         if (maxPlayers > 5)
-            defence = 1 / (2 + (maxPlayers / 5.0f));
+            defense = 1 / (2 + (maxPlayers / 5.0f));
 
         float multiplier = 1.0f;
         bool isAttackerPlayer = attacker->GetTypeId() == TYPEID_PLAYER;
@@ -472,7 +470,7 @@ private:
         bool isCharmedPlayer = isAttackerPlayer && attacker->GetCharmerGUID();
 
         if ((!isAttackerPlayer || isCharmedPlayer || isSelfHarm) && !isAttackerPet)
-            multiplier = defence + (1 - defence) / (maxPlayers - 1) * (nplayers - 1);
+            multiplier = defense + (1 - defense) / (maxPlayers - 1) * (nplayers - 1);
 
         Player* player = nullptr;
 
@@ -568,7 +566,7 @@ public:
             {
                 if (!player->IsInCombat())
                     mapInfo->nplayers = map->GetPlayersCountExceptGMs() - 1;
-        
+
                 if (mapInfo->nplayers > 0)
                 {
                     if (map->GetEntry()->IsDungeon())
@@ -595,7 +593,7 @@ public:
     {
         if (!creature || !creature->GetMap())
             return;
-        
+
         if (!creature->IsAlive())
             return;
 
@@ -623,12 +621,12 @@ public:
         uint32 nplayers = creatureInfo->nplayers;
         uint32 maxPlayers = instanceMap->GetMaxPlayers();
 
-        float offence = Offence5M;
+        float offense = Offense5M;
 
         if (maxPlayers > 5)
-            offence = 1 / (maxPlayers - (2 + (maxPlayers / 5.0f)));
+            offense = 1 / (maxPlayers - (2 + (maxPlayers / 5.0f)));
 
-        creatureInfo->HealthMultiplier = offence + (1 - offence) / (maxPlayers - 1) * (nplayers - 1);
+        creatureInfo->HealthMultiplier = offense + (1 - offense) / (maxPlayers - 1) * (nplayers - 1);
         scaledHealth = round(((float)baseHealth * creatureInfo->HealthMultiplier) + 1.0f);
 
         uint32 previousHealth = creature->GetHealth();
@@ -758,23 +756,23 @@ public:
 
         uint32 maxPlayers = instanceMap->GetMaxPlayers();
 
-        float offence = Offence5M;
-        float defence = Defence5M;
+        float offense = Offense5M;
+        float defense = Defense5M;
 
         if (maxPlayers > 5)
         {
             float tanks = 2.0f;
             float healers = maxPlayers / 5.0f;
             float dps = maxPlayers - (tanks + healers);
-            offence = 1 / dps;
-            defence = 1 / (tanks + healers);
+            offense = 1 / dps;
+            defense = 1 / (tanks + healers);
         }
 
         uint32 nplayers = std::max(mapInfo->nplayers, mapInfo->veto);
 
         handler->PSendSysMessage("Players set to %i.", nplayers);
-        handler->PSendSysMessage("Health multiplier set to %.2f.", offence + (1 - offence) / (maxPlayers - 1) * (nplayers - 1));
-        handler->PSendSysMessage("Damage multiplier set to %.2f.", defence + (1 - defence) / (maxPlayers - 1) * (nplayers - 1));
+        handler->PSendSysMessage("Health multiplier set to %.2f.", offense + (1 - offense) / (maxPlayers - 1) * (nplayers - 1));
+        handler->PSendSysMessage("Damage multiplier set to %.2f.", defense + (1 - defense) / (maxPlayers - 1) * (nplayers - 1));
 
         nplayers = std::min(5u, std::max(mapInfo->nplayers, mapInfo->veto));
 
