@@ -4,7 +4,7 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 ARG USER=wobgob
 
-ENV TZ=Etc/UTC
+ENV TZ=Australia/Sydney
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sed --in-place --regexp-extended "s/(\/\/)(archive\.ubuntu)/\1au.\2/" /etc/apt/sources.list && \
@@ -59,7 +59,7 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 ARG USER=wobgob
 
-ENV TZ=Etc/UTC
+ENV TZ=Australia/Sydney
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN addgroup --gid $GROUP_ID wobgob && \
