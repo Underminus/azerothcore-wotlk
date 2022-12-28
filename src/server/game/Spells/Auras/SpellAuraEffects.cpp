@@ -6624,7 +6624,6 @@ void AuraEffect::HandlePeriodicHealAurasTick(Unit* target, Unit* caster) const
     uint32 heal = uint32(damage);
 
     sScriptMgr->ModifyPeriodicHealAurasTick(target, caster, heal, GetSpellInfo());
-    sScriptMgr->ModifyHealReceived(target, caster, heal, GetSpellInfo());
 
     HealInfo healInfo(caster, target, heal, GetSpellInfo(), GetSpellInfo()->GetSchoolMask());
     Unit::CalcHealAbsorb(healInfo);
