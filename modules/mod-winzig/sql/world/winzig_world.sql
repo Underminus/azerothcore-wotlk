@@ -214,7 +214,7 @@ UPDATE `creature_template` SET `subname` = 'Wobbling Goblin' WHERE `entry` = 210
 DELETE FROM `npc_vendor` WHERE `entry` = 5126979;
 INSERT INTO `npc_vendor` (`entry`, `slot`, `item`, `ExtendedCost`)
 VALUES
-    (5126979, 0, 5621799, 3870076), -- Loot Box
+    (5126979, 0, 5621799, 3870077), -- Loot Box
     (5126979, 1, 35223, 3870076), -- Papa Hummel's Old-Fashioned Pet Biscuit
     (5126979, 2, 2251094, 0), -- Reagent Pouch (Gold)
     (5126979, 3, 2251094, 3870079); -- Reagent Pouch (Macaroons)

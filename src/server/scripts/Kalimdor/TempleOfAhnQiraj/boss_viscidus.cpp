@@ -69,15 +69,16 @@ enum Emotes
     EMOTE_EXPLODE               = 5
 };
 
+// Adjust for 5 mans (1/8th of original amount)
 enum HitCounter
 {
-    HITCOUNTER_SLOW             = 100,
-    HITCOUNTER_SLOW_MORE        = 150,
-    HITCOUNTER_FREEZE           = 200,
+    HITCOUNTER_SLOW             = 13,
+    HITCOUNTER_SLOW_MORE        = 19,
+    HITCOUNTER_FREEZE           = 25,
 
-    HITCOUNTER_CRACK            = 50,
-    HITCOUNTER_SHATTER          = 100,
-    HITCOUNTER_EXPLODE          = 150,
+    HITCOUNTER_CRACK            = 6,
+    HITCOUNTER_SHATTER          = 13,
+    HITCOUNTER_EXPLODE          = 19,
 };
 
 enum MovePoints

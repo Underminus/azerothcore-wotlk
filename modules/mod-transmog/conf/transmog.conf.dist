@@ -184,14 +184,14 @@ Transmogrification.TokenAmount = 80
 #        Default:    0
 
 Transmogrification.AllowPoor = 0
-Transmogrification.AllowCommon = 1
+Transmogrification.AllowCommon = 0
 Transmogrification.AllowUncommon = 1
 Transmogrification.AllowRare = 1
 Transmogrification.AllowEpic = 1
 Transmogrification.AllowLegendary = 0
 Transmogrification.AllowArtifact = 0
 Transmogrification.AllowHeirloom = 1
-Transmogrification.AllowTradeable = 1
+Transmogrification.AllowTradeable = 0
 
 Transmogrification.AllowMixedArmorTypes = 0
 Transmogrification.AllowMixedWeaponTypes = 0

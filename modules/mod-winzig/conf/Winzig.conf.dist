@@ -5,11 +5,10 @@
 ########################################
 #
 #    Winzig.Enable
-#        Description: Enable the module and print a message on login.
+#        Description: Enable the module
 #        Default:     0 - Disabled
 #                     1 - Enabled
 #
-
 Winzig.Enable = 1
 
 #
@@ -17,63 +16,27 @@ Winzig.Enable = 1
 #        Description: Number of items obtained out of a loot box if they're stackable.
 #        Default:     5
 #
-
 Winzig.StackSize = 5
 
 #
 #    Winzig.FiveStarRate
 #        Description: Chance of getting an epic item out of a loot box.
-#        Default:     0.006 (0.6%)
+#        Default:     0.016 (1.6%)
 #
-
-Winzig.FiveStarRate = 0.006
+Winzig.FiveStarRate = 0.016
 
 #
 #    Winzig.FourStarRate
 #        Description: Chance of getting a rare item out of a loot box.
-#        Default:     0.051 (5.1%)
+#        Default:     0.013 (13%)
 #
-
-Winzig.FourStarRate = 0.051
-
-#
-#    Winzig.PromotionalGuarantee
-#        Description: Number of epics before guaranteed a promotional event item.
-#        Default:     2 (50/50)
-#
-
-Winzig.PromotionalGuarantee = 2
-
-#
-#    Winzig.FiveStarGuarantee
-#        Description: Number of loot boxes to guarantee a standard epic item.
-#        Default:     90
-#
-
-Winzig.FiveStarGuarantee = 90
-
-#
-#    Winzig.FeaturedGuarantee
-#        Description: Number of rares to guarantee a featured event item.
-#        Default:     2 (50/50)
-#
-
-Winzig.FeaturedGuarantee = 2
-
-#
-#    Winzig.FourStarGuarantee
-#        Description: Number of loot boxes to guarantee a standard rare item.
-#        Default:     2
-#
-
-Winzig.FourStarGuarantee = 10
+Winzig.FourStarRate = 0.13
 
 #
 #    Winzig.NPC
 #        Description: The entry ID of the loot box NPC.
 #        Default:     5126979
 #
-
 Winzig.NPC = 5126979
 
 #
@@ -81,7 +44,6 @@ Winzig.NPC = 5126979
 #        Description: The item ID of the starter loot box.
 #        Default:     5621798
 #
-
 Winzig.StarterBox = 5621798
 
 #
@@ -89,7 +51,6 @@ Winzig.StarterBox = 5621798
 #        Description: The item ID of the classic loot box.
 #        Default:     5621799
 #
-
 Winzig.ClassicBox = 5621799
 
 #
@@ -97,7 +58,6 @@ Winzig.ClassicBox = 5621799
 #        Description: The item ID of the burnt loot box.
 #        Default:     5621800
 #
-
 Winzig.BurntBox = 5621800
 
 #
@@ -105,7 +65,6 @@ Winzig.BurntBox = 5621800
 #        Description: The item ID of the frozen loot box.
 #        Default:     5621801
 #
-
 Winzig.FrozenBox = 5621801
 
 #
@@ -113,45 +72,11 @@ Winzig.FrozenBox = 5621801
 #        Description: The item ID of the reagent pouch.
 #        Default:     2251094
 #
-
 Winzig.ReagentPouch = 2251094
-
-#
-#    Winzig.Season
-#        Description: The current season of featured and promotional loot box items.
-#        Default:     0 - No season
-#
-
-Winzig.Season = 0
 
 #
 #    Winzig.CustomCurrency
 #        Description: ID of the custom currency
 #        Default:     37711
 #
-
 Winzig.CustomCurrency = 37711
-
-#
-#    Winzig.DailyReward
-#        Description: Daily reward in custom currency.
-#        Default:     90
-#
-
-Winzig.DailyReward = 90
-
-#
-#    Winzig.LevelReward
-#        Description: Reward for leveling up in custom currency.
-#        Default:     75
-#
-
-Winzig.LevelReward = 75
-
-#
-#    Winzig.KillReward
-#        Description: Reward for leveling up in custom currency.
-#        Default:     10
-#
-
-Winzig.KillReward = 10

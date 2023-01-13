@@ -11,27 +11,3 @@
 #
 
 PlayerSettings.Enable = 1
-
-#
-#    PlayerSettings.Experience
-#        Description: Give additional experience per player in the group
-#        Default:     0.1
-#
-
-PlayerSettings.Experience = 0.1
-
-#
-#    PlayerSettings.Gold
-#        Description: Give additional gold per player in the group
-#        Default:     0.1
-#
-
-PlayerSettings.Gold = 0.1
-
-#
-#    PlayerSettings.Honor
-#        Description: Give additional honor per player in the group
-#        Default:     0.1
-#
-
-PlayerSettings.Honor = 0.1

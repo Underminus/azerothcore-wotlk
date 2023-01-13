@@ -37,7 +37,7 @@ public:
 
         if (player->getLevel() >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)) {
             Aura* hardcore = player->GetAura(SPELL_AURA_HARDCORE);
-            
+
             if (hardcore) {
                 player->RemoveAura(hardcore);
                 player->AddAura(SPELL_AURA_IMMORTAL, player);
@@ -53,53 +53,39 @@ public:
 
         if (player->HasAura(SPELL_AURA_HARDCORE) || player->HasAura(SPELL_AURA_IMMORTAL)) {
             if (player->getLevel() >= 20) {
-                setTitle(player, 0, false);
+                setTitle(player, 0);
             }
 
             if (player->getLevel() >= 40) {
-                setTitle(player, 1, false);
+                setTitle(player, 1);
             }
 
             if (player->getLevel() >= 60) {
-                setTitle(player, 2, false);
+                setTitle(player, 2);
             }
         }
 
-        QueryResult result = CharacterDatabase.Query("SELECT `class`, `title` FROM `class_titles` WHERE `account` = " + std::to_string(player->GetSession()->GetAccountId()));
-        if (result) {
-            do {
-                Field* fields = result->Fetch();
-                uint32 charClass = fields[0].Get<uint32>();
-                uint32 title = fields[1].Get<uint8>();
-
-                if (player->getClass() != charClass)
-                    return;
-
-                CharTitlesEntry const* titleInfo = sCharTitlesStore.LookupEntry(title);
-                player->SetTitle(titleInfo, false);
-            } while (result->NextRow());
-        }
     }
 
     void OnLevelChanged(Player* player, uint8 /*oldlevel*/) override
     {
         if (player->HasAura(SPELL_AURA_HARDCORE) || player->HasAura(SPELL_AURA_IMMORTAL)) {
             if (player->getLevel() >= 20) {
-                setTitle(player, 0, true);
+                setTitle(player, 0);
             }
 
             if (player->getLevel() >= 40) {
-                setTitle(player, 1, true);
+                setTitle(player, 1);
             }
 
             if (player->getLevel() >= 60) {
-                setTitle(player, 2, true);
+                setTitle(player, 2);
             }
         }
 
         if (player->getLevel() >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)) {
             Aura* hardcore = player->GetAura(SPELL_AURA_HARDCORE);
-            
+
             if (hardcore) {
                 player->RemoveAura(hardcore);
                 player->AddAura(SPELL_AURA_IMMORTAL, player);
@@ -193,7 +179,7 @@ public:
     }
 
 private:
-    void setTitle(Player* player, uint32 rank, bool save)
+    void setTitle(Player* player, uint32 rank)
     {
         auto it = Class2Index.find((Classes)player->getClass());
 
@@ -205,12 +191,6 @@ private:
                 return;
 
             player->SetTitle(titleInfo, false);
-
-            if (save) {
-                auto trans = CharacterDatabase.BeginTransaction();
-                trans->Append("INSERT INTO class_titles (account, class, title) VALUES ({}, {}, {})", player->GetSession()->GetAccountId(), player->getClass(), title);
-                CharacterDatabase.CommitTransaction(trans);
-            }
         }
     }
 };
@@ -261,41 +241,9 @@ public:
     }
 };
 
-class HardcoreDatabase : public DatabaseScript
-{
-public:
-    HardcoreDatabase() : DatabaseScript("HardcoreDatabase") {}
-
-    std::string path = "/modules/mod-hardcore/sql/";
-    void OnAfterDatabasesLoaded(uint32 updateFlags) override
-    {
-        if (DBUpdater<LoginDatabaseConnection>::IsEnabled(updateFlags))
-        {
-            std::vector<std::string> directories;
-            directories.push_back(path + "auth");
-            DBUpdater<LoginDatabaseConnection>::Update(LoginDatabase, &directories);
-        }
-
-        if (DBUpdater<CharacterDatabaseConnection>::IsEnabled(updateFlags))
-        {
-            std::vector<std::string> directories;
-            directories.push_back(path + "characters");
-            DBUpdater<CharacterDatabaseConnection>::Update(CharacterDatabase, &directories);
-        }
-
-        if (DBUpdater<WorldDatabaseConnection>::IsEnabled(updateFlags))
-        {
-            std::vector<std::string> directories;
-            directories.push_back(path + "world");
-            DBUpdater<WorldDatabaseConnection>::Update(WorldDatabase, &directories);
-        }
-    }
-};
-
 void AddHardcoreScripts()
 {
     new HardcorePlayer();
     new HardcoreGuild();
     new HardcoreMisc();
-    new HardcoreDatabase();
 }

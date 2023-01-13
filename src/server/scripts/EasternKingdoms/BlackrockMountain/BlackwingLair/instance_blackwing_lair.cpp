@@ -506,6 +506,50 @@ public:
     }
 };
 
+enum ShadowFlame
+{
+    SPELL_ONYXIA_SCALE_CLOAK = 22683,
+    SPELL_SHADOW_FLAME_DOT = 22682
+};
+
+// 22539 - Shadowflame (used in Blackwing Lair)
+class spell_bwl_shadowflame : public SpellScriptLoader
+{
+public:
+    spell_bwl_shadowflame() : SpellScriptLoader("spell_bwl_shadowflame") { }
+
+    class spell_bwl_shadowflame_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_bwl_shadowflame_SpellScript);
+
+        bool Validate(SpellInfo const* /*spellInfo*/) override
+        {
+            return ValidateSpellInfo({ SPELL_ONYXIA_SCALE_CLOAK, SPELL_SHADOW_FLAME_DOT });
+        }
+
+        void HandleEffectScriptEffect(SpellEffIndex /*effIndex*/)
+        {
+            // If the victim of the spell does not have "Onyxia Scale Cloak" - add the Shadow Flame DoT (22682)
+            if (Unit* victim = GetHitUnit())
+            {
+                bool isPet = (victim->IsHunterPet() || victim->IsPet() || victim->IsSummon() || victim->IsTotem()) && victim->IsControlledByPlayer();
+                if (!victim->HasAura(SPELL_ONYXIA_SCALE_CLOAK) && !isPet)
+                    victim->AddAura(SPELL_SHADOW_FLAME_DOT, victim);
+            }
+        }
+
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_bwl_shadowflame_SpellScript::HandleEffectScriptEffect, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_bwl_shadowflame_SpellScript;
+    }
+};
+
 enum orb_of_command_misc
 {
     QUEST_BLACKHANDS_COMMAND = 7761,
@@ -533,5 +577,6 @@ public:
 void AddSC_instance_blackwing_lair()
 {
     new instance_blackwing_lair();
+    new spell_bwl_shadowflame();
     new at_orb_of_command();
 }

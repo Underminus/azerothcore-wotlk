@@ -1,3 +1,6 @@
+-- Adjust minimum players for each battleground
+UPDATE `battleground_template` SET `MinPlayersPerTeam` = `MaxPlayersPerTeam` / 5 WHERE `ID` IN (1, 2, 3, 7, 8, 9, 30);
+
 -- Dark Command
 REPLACE INTO `npc_trainer` VALUES (200019, 56222, 6500, 0, 0, 60, 0);
 

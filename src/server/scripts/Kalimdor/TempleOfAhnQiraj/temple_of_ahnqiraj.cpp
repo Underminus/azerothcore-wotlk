@@ -313,22 +313,11 @@ struct npc_anubisath_warder : public ScriptedAI
 
     void EnterCombat(Unit* /*who*/) override
     {
-        if (urand(0, 1))
+        _scheduler.Schedule(5s, 5s, [this](TaskContext context)
         {
-            _scheduler.Schedule(5s, 5s, [this](TaskContext context)
-            {
-                DoCastAOE(SPELL_FEAR, true);
-                context.Repeat(20s, 20s);
-            });
-        }
-        else
-        {
-            _scheduler.Schedule(5s, 5s, [this](TaskContext context)
-            {
-                DoCastAOE(SPELL_ENTAGLING_ROOTS, true);
-                context.Repeat(20s, 20s);
-            });
-        }
+            DoCastAOE(SPELL_ENTAGLING_ROOTS, true);
+            context.Repeat(20s, 20s);
+        });
 
         if (urand(0, 1))
         {

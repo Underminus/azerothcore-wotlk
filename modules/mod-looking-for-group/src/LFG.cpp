@@ -20,21 +20,16 @@ public:
     {
         bool hardcore = player->HasAura(3758285);
 
-        if (isRaidBrowser(player) || (isRandomDungeon(dungeons) && !hardcore) || isLFGGroup(player))
-            return true;
-
-        if (isRandomDungeon(dungeons) && hardcore)
+        if (hardcore)
         {
             ChatHandler(player->GetSession()).SendSysMessage("Hardcore players cannot join random dungeons.");
             return false;
         }
 
-        uint32 dungeonId = randomDungeon(dungeons);
-        transport(player, dungeonId);
-        return false;
+        return true;
     }
 
-    void OnQueueRandomDungeon(Player* player, uint32& rDungeonId) override 
+    void OnQueueRandomDungeon(Player* player, uint32& rDungeonId) override
     {
         lfg::LfgDungeonSet const& dungeons = sLFGMgr->GetDungeonsByRandom(rDungeonId);
 
@@ -101,7 +96,7 @@ public:
         {
             error = lfg::LFG_TELEPORTERROR_FATIGUE;
         }
-        else if (player->GetVehicle() || player->HasUnitState(UNIT_STATE_IN_FLIGHT)) 
+        else if (player->GetVehicle() || player->HasUnitState(UNIT_STATE_IN_FLIGHT))
         {
             error = lfg::LFG_TELEPORTERROR_IN_VEHICLE;
         }
@@ -134,45 +129,8 @@ private:
 
         if (!group)
             return false;
-        
+
         return group->isLFGGroup();
-    }
-
-    uint32 randomDungeon(lfg::LfgDungeonSet& dungeons)
-    {
-        std::random_device seed;
-        std::mt19937 engine(seed());
-        std::uniform_int_distribution<int> choose(0, dungeons.size() - 1);
-        lfg::LfgDungeonSet::const_iterator it = dungeons.begin();
-        int index = choose(engine);
-
-        for (int i = 0; i < index; i++)
-            it++;
-        
-        return *it;
-    }
-
-    bool transport(Player* leader, uint32 id)
-    {
-        lfg::LFGDungeonData const* dungeon = sLFGMgr->GetLFGDungeon(id);
-
-        if (!dungeon)
-        {
-            leader->GetSession()->SendLfgTeleportError(uint8(lfg::LFG_TELEPORTERROR_INVALID_LOCATION));
-            return false;
-        }
-
-        lfg::LfgTeleportError error = CanTeleport(leader);
-        if (error == lfg::LFG_TELEPORTERROR_OK)
-            error = transportToDungeon(leader, dungeon);
-
-        if (error != lfg::LFG_TELEPORTERROR_OK)
-        {
-            leader->GetSession()->SendLfgTeleportError(uint8(error));
-            return false;
-        }
-
-        return true;
     }
 
     static void getLeaderAndCount(Player* player, Player** leader, uint32* count)
@@ -209,54 +167,6 @@ private:
                 "|cff00CC00[LFG Queue Announcer]:|r Random Dungeon -- [%u-%u][%u/5]",
                 minlevel, maxlevel, count, name.c_str()
             );
-    }
-
-    lfg::LfgTeleportError transportToDungeon(Player* leader, lfg::LFGDungeonData const* dungeon)
-    {
-        uint32 mapid = dungeon->map;
-        float x = dungeon->x;
-        float y = dungeon->y;
-        float z = dungeon->z;
-        float orientation = dungeon->o;
-        uint32 zoneid = sMapMgr->GetZoneId(leader->GetPhaseMask(), mapid, x, y, z);
-
-        if (!leader->GetMap()->IsDungeon() || leader->GetEntryPoint().GetMapId() == MAPID_INVALID)
-            leader->SetEntryPoint();
-
-        lfg::LfgTeleportError error = lfg::LFG_TELEPORTERROR_OK;
-
-        if (leader->GetMapId() != mapid)
-            if (!leader->TeleportTo(mapid, x, y, z, orientation, 0, nullptr, mapid == leader->GetMapId()))
-                error = lfg::LFG_TELEPORTERROR_INVALID_LOCATION;
-
-        Group* group = leader->GetGroup();
-
-        if (!group)
-            return error;
-
-        ObjectGuid leaderid = group->GetLeaderGUID();
-
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-        {
-            if (Player* player = itr->GetSource())
-            {
-                if (player->GetGUID() == leaderid || player->GetMapId() == mapid)
-                    continue;
-
-                if (!player->GetMap()->IsDungeon() || player->GetEntryPoint().GetMapId() == MAPID_INVALID)
-                    player->SetEntryPoint();
-
-                player->SetSummonPoint(mapid, x, y, z);
-
-                WorldPacket data(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
-                data << leaderid;
-                data << zoneid;
-                data << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);
-                player->GetSession()->SendPacket(&data);
-            }
-        }
-
-        return lfg::LFG_TELEPORTERROR_OK;
     }
 };
 

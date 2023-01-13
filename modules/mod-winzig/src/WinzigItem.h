@@ -5,27 +5,25 @@
 #include <vector>
 #include "ScriptMgr.h"
 
-#define STACKABLE_COUNT 5
-
-enum Rarity {
+enum Rarity
+{
     RARITY_NONE,
-    RARITY_ONE_STAR,    // Poor
-    RARITY_TWO_STAR,    // Common
-    RARITY_THREE_STAR,  // Uncommon
-    RARITY_FOUR_STAR,   // Rare
-    RARITY_FIVE_STAR,   // Epic
-    RARITY_SIX_STAR,    // Legendary
-    RARITY_SEVEN_STAR,  // Artifact
-    RARITY_EIGHT_STAR   // Heirloom
+    RARITY_ONE_STAR,
+    RARITY_TWO_STAR,
+    RARITY_THREE_STAR,
+    RARITY_FOUR_STAR,
+    RARITY_FIVE_STAR
 };
 
-enum Banner {
+enum Banner
+{
     BANNER_NONE,
     BANNER_FEATURED,
     BANNER_PROMOTIONAL
 };
 
-enum Box {
+enum Box
+{
     BOX_NONE,
     BOX_STARTER,
     BOX_CLASSIC,
