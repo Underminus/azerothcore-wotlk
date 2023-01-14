@@ -39,14 +39,12 @@ COPY --chown=$USER:$USER modules /core/modules
 COPY --chown=$USER:$USER src /core/src
 COPY --chown=$USER:$USER CMakeLists.txt /core/CMakeLists.txt
 
-WORKDIR /core
-
 RUN chown -R $USER:$USER /home/wobgob
 RUN chown -R $USER:$USER /run
 RUN chown -R $USER:$USER /opt
 
-RUN mkdir build
-RUN cd build && \
+WORKDIR /core/build
+RUN --mount=type=cache,target=/core/build \
   cmake ../ -DCMAKE_INSTALL_PREFIX=/core/ -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS=0 \
     -DSCRIPTS=static -DMODULES=static && \
