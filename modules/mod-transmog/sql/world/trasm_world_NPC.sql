@@ -20,7 +20,7 @@ INSERT INTO `creature_template` (
     `RangeAttackTime`, `unit_class`, `unit_flags`, `unit_flags2`, `type`,
     `flags_extra`, `ScriptName`, `VerifiedBuild`
 ) VALUES (
-    @kwixal_entry_id, @kwixal_display_id, 'Kwixal', 'Wobbling Goblin', 0, 60, 60, 35, 1, 0.7, 1,
+    @kwixal_entry_id, @kwixal_display_id, 'Kwixal', 'Wobblin Goblin', 0, 60, 60, 35, 1, 0.7, 1,
     2000, 2000, 4, 768, 2048, 7, 2, 'npc_transmogrifier', 12340
 );
 

@@ -1,1 +1,0 @@
-UPDATE item_template SET ScriptName = "item_hearthstone" WHERE entry IN (6948, 54452);
