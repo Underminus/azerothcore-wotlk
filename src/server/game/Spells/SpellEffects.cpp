@@ -485,6 +485,17 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                         damage += int32(energy * multiple);
                         damage += int32(CalculatePct(m_caster->GetComboPoints() * ap, 7));
                     }
+                    //npcbot: Ferocious Bite support
+                    else if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot() && (m_spellInfo->SpellFamilyFlags[0] & 0x800000) && m_spellInfo->SpellVisual[0] == 6587)
+                    {
+                        // converts each extra point of energy into ($f1+$AP/410) additional damage
+                        float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                        float multiple = ap / 410 + m_spellInfo->Effects[effIndex].DamageMultiplier;
+                        int32 energy = -(m_caster->ModifyPower(POWER_ENERGY, -30));
+                        damage += int32(energy * multiple);
+                        damage += int32(CalculatePct(m_caster->ToCreature()->GetCreatureComboPoints() * ap, 7));
+                    }
+                    //end npcbot
                     // Wrath
                     else if (m_spellInfo->SpellFamilyFlags[0] & 0x00000001)
                     {
@@ -545,6 +556,52 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                             }
                         }
                     }
+                    //npcbot: Envenom support
+                    else if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot())
+                    {
+                        // consume from stack dozes not more that have combo-points
+                        if (uint8 combo = m_caster->ToCreature()->GetCreatureComboPoints())
+                        {
+                            // Lookup for Deadly poison (only attacker applied)
+                            if (AuraEffect const* aurEff = unitTarget->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_ROGUE, 0x00010000, 0, 0, m_caster->GetGUID()))
+                            {
+                                // count consumed deadly poison doses at target
+                                bool needConsume = true;
+                                uint32 spellId = aurEff->GetId();
+
+                                uint32 doses = aurEff->GetBase()->GetStackAmount();
+                                if (doses > combo)
+                                    doses = combo;
+
+                                // Master Poisoner
+                                Unit::AuraEffectList const& auraList = m_caster->GetAuraEffectsByType(SPELL_AURA_MOD_AURA_DURATION_BY_DISPEL_NOT_STACK);
+                                for (Unit::AuraEffectList::const_iterator iter = auraList.begin(); iter != auraList.end(); ++iter)
+                                {
+                                    if ((*iter)->GetSpellInfo()->SpellFamilyName == SPELLFAMILY_ROGUE && (*iter)->GetSpellInfo()->SpellIconID == 1960)
+                                    {
+                                        uint32 chance = (*iter)->GetSpellInfo()->GetEffect(EFFECT_2).CalcValue(m_caster);
+
+                                        if (chance && roll_chance_i(chance))
+                                            needConsume = false;
+
+                                        break;
+                                    }
+                                }
+
+                                if (needConsume)
+                                    for (uint32 i = 0; i < doses; ++i)
+                                        unitTarget->RemoveAuraFromStack(spellId, m_caster->GetGUID());
+
+                                damage *= doses;
+                                damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.09f * combo);
+                            }
+
+                            // Eviscerate and Envenom Bonus Damage (item set effect)
+                            if (m_caster->HasAura(37169))
+                                damage += combo * 40;
+                        }
+                    }
+                    //end npcbot
                     // Eviscerate
                     else if (m_spellInfo->SpellFamilyFlags[0] & 0x00020000)
                     {
@@ -560,6 +617,20 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                                     damage += combo * 40;
                             }
                         }
+                        //npcbot: Eviscerate support
+                        else if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot())
+                        {
+                            if (uint32 combo = m_caster->ToCreature()->GetCreatureComboPoints())
+                            {
+                                float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                                damage += std::lroundf(ap * combo * 0.07f);
+
+                                // Eviscerate and Envenom Bonus Damage (item set effect)
+                                if (m_caster->HasAura(37169))
+                                    damage += combo*40;
+                            }
+                        }
+                        //end npcbot
                     }
                     break;
                 }
@@ -611,6 +682,27 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                             }
                             damage += int32(caster->GetAmmoDPS() * caster->GetAttackTime(RANGED_ATTACK) * 0.001f);
                         }
+                        //npcbot: calculate bot weapon damage
+                        if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot())
+                        {
+                            if (Item* item = m_caster->ToCreature()->GetBotEquips(2/*BOT_SLOT_RANGED*/))
+                            {
+                                ItemTemplate const* weaponTemplate = item->GetTemplate();
+                                float dmg_min = 0.f;
+                                float dmg_max = 0.f;
+                                for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+                                {
+                                    dmg_min += weaponTemplate->Damage[i].DamageMin;
+                                    dmg_max += weaponTemplate->Damage[i].DamageMax;
+                                }
+                                if (dmg_max == 0.0f && dmg_min > dmg_max)
+                                    damage += int32(dmg_min);
+                                else
+                                    damage += irand(int32(dmg_min), int32(dmg_max));
+                                damage += int32(m_caster->ToCreature()->GetCreatureAmmoDPS() * weaponTemplate->Delay * 0.001f);
+                            }
+                        }
+                        //end npcbot
                     }
                     break;
                 }
@@ -636,6 +728,26 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                             int32 count = m_caster->CalculateSpellDamage(unitTarget, m_spellInfo, EFFECT_2);
                             damage += count * int32(average * IN_MILLISECONDS) / m_caster->GetAttackTime(BASE_ATTACK);
                         }
+                        //npcbot: creature weaoin damage
+                        else if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot())
+                        {
+                            float minTotal = 0.f;
+                            float maxTotal = 0.f;
+
+                            float tmpMin, tmpMax;
+                            for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+                            {
+                                m_caster->ToCreature()->CalculateMinMaxDamage(BASE_ATTACK, false, false, tmpMin, tmpMax, i);
+                                minTotal += tmpMin;
+                                maxTotal += tmpMax;
+                            }
+
+                            float average = (minTotal + maxTotal) / 2;
+                            // Add main hand dps * effect[2] amount
+                            int32 count = m_caster->CalculateSpellDamage(unitTarget, m_spellInfo, EFFECT_2);
+                            damage += count * int32(average * IN_MILLISECONDS) / m_caster->GetAttackTime(BASE_ATTACK);
+                        }
+                        //end npcbot
                         break;
                     }
                     // Shield of Righteousness
@@ -804,6 +916,62 @@ void Spell::EffectTriggerSpell(SpellEffIndex effIndex)
         // special cases
         switch (triggered_spell_id)
         {
+            //npcbot: triggered heal/energize calculation (effect)
+            // Quest - Self Healing from resurrect (invisible in log)
+            case 25155:
+            {
+                switch (m_spellInfo->Id)
+                {
+                    //Replenish Life (Regenerating Aura)
+                    case 34756:
+                    {
+                        //cannot target self
+                        if (m_caster == unitTarget)
+                            return;
+
+                        // % of max health
+                        int32 basepoints0 = 0.01f * unitTarget->GetMaxHealth() * m_spellInfo->Effects[effIndex].BasePoints;
+                        //TC_LOG_ERROR("entities.unit", "TriggerSpell(%u from %u): %s on %s base val %i,",
+                        //    triggered_spell_id, m_spellInfo->Id, m_caster->GetName().c_str(), unitTarget->GetName().c_str(), int32(basepoints0));
+                        //CastSpellExtraArgs args(true);
+                        //args.AddSpellBP0(basepoints0);
+                        //unitTarget->CastSpell(unitTarget, triggered_spell_id, args);
+                        unitTarget->CastCustomSpell(unitTarget, triggered_spell_id, &basepoints0, nullptr, nullptr, true);
+                        return;
+                    }
+                    default:
+                        break;
+                }
+                break;
+            }
+            // Energize (invisible in log)
+            case 60628:
+            {
+                switch (m_spellInfo->Id)
+                {
+                    //Replenish Mana
+                    case 33394:
+                    {
+                        //cannot target self
+                        if (m_caster == unitTarget)
+                            return;
+
+                        // % of max mana
+                        int32 basepoints0 = m_spellInfo->Effects[effIndex].BasePoints;
+                        //TC_LOG_ERROR("entities.unit", "TriggerSpell(%u from %u): %s on %s base val %i,",
+                        //    triggered_spell_id, m_spellInfo->Id, m_caster->GetName().c_str(), unitTarget->GetName().c_str(), int32(basepoints0));
+                        //CastSpellExtraArgs args(true);
+                        //args.AddSpellBP0(basepoints0);
+                        //unitTarget->CastSpell(unitTarget, triggered_spell_id, args);
+                        unitTarget->CastCustomSpell(unitTarget, triggered_spell_id, &basepoints0, nullptr, nullptr, true);
+                        return;
+                    }
+                    default:
+                        break;
+                }
+                break;
+            }
+            //end npcbot
             // Mirror Image
             case 58832:
                 {
@@ -922,6 +1090,10 @@ void Spell::EffectTriggerSpell(SpellEffIndex effIndex)
         return;
     }
 
+    //npcbot: override spellInfo
+    spellInfo = spellInfo->TryGetSpellInfoOverride(GetCaster());
+    //end npcbot
+
     SpellCastTargets targets;
     if (effectHandleMode == SPELL_EFFECT_HANDLE_LAUNCH_TARGET)
     {
@@ -978,6 +1150,10 @@ void Spell::EffectTriggerMissileSpell(SpellEffIndex effIndex)
         LOG_DEBUG("spells.aura", "Spell::EffectTriggerMissileSpell spell {} tried to trigger unknown spell {}", m_spellInfo->Id, triggered_spell_id);
         return;
     }
+
+    //npcbot: override spellInfo
+    spellInfo = spellInfo->TryGetSpellInfoOverride(GetCaster());
+    //end npcbot
 
     SpellCastTargets targets;
     if (effectHandleMode == SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -1377,6 +1553,11 @@ void Spell::EffectPowerDrain(SpellEffIndex effIndex)
     int32 power = damage;
     if (PowerType == POWER_MANA)
         power -= unitTarget->GetSpellCritDamageReduction(power);
+
+    //npcbot: handle Obsidian Destroyer's Drain Mana (target is friendly, amount is only limited by caster's max mana)
+    if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->GetBotClass() == 13 && PowerType == POWER_MANA)
+        power = m_caster->GetMaxPower(PowerType);
+    //end npcbot
 
     int32 newDamage = -(unitTarget->ModifyPower(PowerType, -int32(power)));
 
@@ -2354,6 +2535,7 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
     if (!m_originalCaster)
         return;
 
+    bool personalSpawn = (properties->Flags & SUMMON_PROP_FLAG_ONLY_VISIBLE_TO_SUMMONER) != 0;
     int32 duration = m_spellInfo->GetDuration();
     if (Player* modOwner = m_originalCaster->GetSpellModOwner())
         modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_DURATION, duration);
@@ -2398,7 +2580,7 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
         case SUMMON_CATEGORY_UNK:
             if (properties->Flags & 512)
             {
-                SummonGuardian(effIndex, entry, properties, numSummons);
+                SummonGuardian(effIndex, entry, properties, numSummons, personalSpawn);
                 break;
             }
             switch (properties->Type)
@@ -2407,18 +2589,18 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
                 case SUMMON_TYPE_GUARDIAN:
                 case SUMMON_TYPE_GUARDIAN2:
                 case SUMMON_TYPE_MINION:
-                    SummonGuardian(effIndex, entry, properties, numSummons);
+                    SummonGuardian(effIndex, entry, properties, numSummons, personalSpawn);
                     break;
                 // Summons a vehicle, but doesn't force anyone to enter it (see SUMMON_CATEGORY_VEHICLE)
                 case SUMMON_TYPE_VEHICLE:
                 case SUMMON_TYPE_VEHICLE2:
-                    summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id);
+                    summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id, 0, personalSpawn);
                     break;
                 case SUMMON_TYPE_LIGHTWELL:
                 case SUMMON_TYPE_TOTEM:
                     {
                         // protection code
-                        summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id);
+                        summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id, 0, personalSpawn);
                         if (!summon || !summon->IsTotem())
                             return;
 
@@ -2436,7 +2618,7 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
                 case SUMMON_TYPE_JEEVES:
                 case SUMMON_TYPE_MINIPET:
                     {
-                        summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id);
+                        summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id, 0, personalSpawn);
                         if (!summon || !summon->HasUnitTypeMask(UNIT_MASK_MINION))
                             return;
 
@@ -2470,7 +2652,7 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
                                 // randomize position for multiple summons
                                 pos = m_caster->GetRandomPoint(*destTarget, radius);
 
-                            summon = m_originalCaster->SummonCreature(entry, pos, summonType, duration);
+                            summon = m_originalCaster->SummonCreature(entry, pos, summonType, duration, 0, nullptr, personalSpawn);
                             if (!summon)
                                 continue;
 
@@ -2492,10 +2674,10 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
             // Xinef: SummonGuardian function can summon a few npcs of same type, remove old summons with same entry here
             if (m_originalCaster)
                 m_originalCaster->RemoveAllMinionsByEntry(entry);
-            SummonGuardian(effIndex, entry, properties, numSummons);
+            SummonGuardian(effIndex, entry, properties, numSummons, personalSpawn);
             break;
         case SUMMON_CATEGORY_PUPPET:
-            summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id);
+            summon = m_caster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_originalCaster, m_spellInfo->Id, 0, personalSpawn);
             break;
         case SUMMON_CATEGORY_VEHICLE:
             // Summoning spells (usually triggered by npc_spellclick) that spawn a vehicle and that cause the clicker
@@ -2506,7 +2688,7 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
             if (std::fabs(m_caster->GetPositionZ() - destTarget->GetPositionZ()) > 6.0f)
                 destTarget->m_positionZ = m_caster->GetPositionZ();
 
-            summon = m_originalCaster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_caster, m_spellInfo->Id);
+            summon = m_originalCaster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, m_caster, m_spellInfo->Id, 0, personalSpawn);
             if (!summon || !summon->IsVehicle())
                 return;
 
@@ -3176,7 +3358,7 @@ void Spell::EffectSummonPet(SpellEffIndex effIndex)
             // Xinef: unsummon old guardian
             if (Guardian* oldPet = m_originalCaster->GetGuardianPet())
                 oldPet->UnSummon();
-            SummonGuardian(effIndex, petentry, properties, 1);
+            SummonGuardian(effIndex, petentry, properties, 1, false);
         }
         return;
     }
@@ -3408,6 +3590,14 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
                         if (Item* item = m_caster->ToPlayer()->GetWeaponForAttack(m_attackType, true))
                             if (item->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER)
                                 AddPct(totalDamagePercentMod, 50.0f);
+
+                    //npcbot: handle bot weapons
+                    // 50% more damage with daggers
+                    if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->IsNPCBot())
+                        if (Item const* weapon = m_caster->ToCreature()->GetBotEquips(m_attackType))
+                            if (weapon->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER)
+                                totalDamagePercentMod *= 1.5f;
+                    //end npcbot
                 }
                 // Mutilate (for each hand)
                 else if (m_spellInfo->SpellFamilyFlags[1] & 0x6)
@@ -3900,17 +4090,6 @@ void Spell::EffectScriptEffect(SpellEffIndex effIndex)
                             if (m_caster->getGender() > 0)
                                 gender = "her";
                             sprintf(buf, "%s rubs %s [Decahedral Dwarven Dice] between %s hands and rolls. One %u and one %u.", m_caster->GetName().c_str(), gender, gender, urand(1, 10), urand(1, 10));
-                            m_caster->TextEmote(buf);
-                            break;
-                        }
-                    // Roll 'dem Bones - Worn Troll Dice
-                    case 47776:
-                        {
-                            char buf[128];
-                            const char* gender = "his";
-                            if (m_caster->getGender() > 0)
-                                gender = "her";
-                            sprintf(buf, "%s causually tosses %s [Worn Troll Dice]. One %u and one %u.", m_caster->GetName().c_str(), gender, urand(1, 6), urand(1, 6));
                             m_caster->TextEmote(buf);
                             break;
                         }
@@ -5186,7 +5365,7 @@ void Spell::EffectPullTowards(SpellEffIndex effIndex)
         pos.Relocate(m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ() + 1.0f, m_caster->GetOrientation());
     }
 
-    float speedXY = float(m_spellInfo->Effects[effIndex].MiscValue) * 0.1f;
+    float speedXY = float(m_spellInfo->Effects[effIndex].MiscValue) ? float(m_spellInfo->Effects[effIndex].MiscValue) * 0.1f : 30.f;
     float speedZ = unitTarget->GetDistance(pos) / speedXY * 0.5f * Movement::gravity;
 
     unitTarget->GetMotionMaster()->MoveJump(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), speedXY, speedZ);
@@ -6005,7 +6184,7 @@ void Spell::EffectGameObjectSetDestructionState(SpellEffIndex effIndex)
     gameObjTarget->SetDestructibleState(GameObjectDestructibleState(m_spellInfo->Effects[effIndex].MiscValue), player, true);
 }
 
-void Spell::SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* properties, uint32 numGuardians)
+void Spell::SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* properties, uint32 numGuardians, bool personalSpawn)
 {
     Unit* caster = m_originalCaster;
     if (!caster)
@@ -6105,7 +6284,7 @@ void Spell::SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* 
             pos = m_caster->GetRandomPoint(*destTarget, radius);
         }
 
-        summon = map->SummonCreature(entry, pos, properties, duration, caster, m_spellInfo->Id);
+        summon = map->SummonCreature(entry, pos, properties, duration, caster, m_spellInfo->Id, 0, personalSpawn);
         if (!summon)
             return;
 

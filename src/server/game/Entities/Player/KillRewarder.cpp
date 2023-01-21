@@ -22,6 +22,10 @@
 #include "Player.h"
 #include "SpellAuraEffects.h"
 
+//npcbot
+#include "botmgr.h"
+//end npcbot
+
 // KillRewarder incapsulates logic of rewarding player upon kill with:
 // * XP;
 // * honor;
@@ -153,7 +157,7 @@ void KillRewarder::_RewardXP(Player* player, float rate)
         //        * cut XP in half if _isFullXP is false.
         if (_maxNotGrayMember && player->IsAlive() &&
             _maxNotGrayMember->GetLevel() >= player->GetLevel())
-            xp = (_isFullXP || _group->isLFGGroup()) ?
+            xp = _isFullXP ?
                  uint32(xp * rate) :             // Reward FULL XP if all group members are not gray.
                  uint32(xp * rate / 2) + 1;      // Reward only HALF of XP if some of group members are gray.
         else
@@ -166,6 +170,17 @@ void KillRewarder::_RewardXP(Player* player, float rate)
         Unit::AuraEffectList const& auras = player->GetAuraEffectsByType(SPELL_AURA_MOD_XP_PCT);
         for (Unit::AuraEffectList::const_iterator i = auras.begin(); i != auras.end(); ++i)
             AddPct(xp, (*i)->GetAmount());
+
+        //npcbot 4.2.2.1. Apply NpcBot XP reduction
+        if (player->GetNpcBotsCount() > 1)
+        {
+            if (uint8 xp_reduction = BotMgr::GetNpcBotXpReduction())
+            {
+                uint32 ratePct = std::max<int32>(100 - ((player->GetNpcBotsCount() - 1) * xp_reduction), 10);
+                xp = xp * ratePct / 100;
+            }
+        }
+        //end npcbot
 
         // 4.2.3. Give XP to player.
         player->GiveXP(xp, _victim, _groupRate);
@@ -208,15 +223,8 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
     // Give reputation and kill credit only in PvE.
     if (!_isPvP || _isBattleGround)
     {
-        float xpRate = 1.0f;
-        float reputationRate = 1.0f;
-
-        if (_group)
-        {
-            xpRate = _group->isLFGGroup() ? _groupRate / _count : _groupRate * float(player->GetLevel()) / _aliveSumLevel;
-            reputationRate = _group->isLFGGroup() ? _groupRate / _count : _groupRate * float(player->GetLevel()) / _sumLevel;
-        }
-
+        float xpRate = _group ? _groupRate * float(player->GetLevel()) / _aliveSumLevel : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the sum of levels.
+        float reputationRate = _group ? _groupRate * float(player->GetLevel()) / _sumLevel : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the sum of levels.
         sScriptMgr->OnRewardKillRewarder(player, isDungeon, xpRate);                                              // Personal rate is 100%.
 
         if (_xp)

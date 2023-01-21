@@ -544,6 +544,9 @@ public:
 
     UsedSpellMods m_appliedMods;
 
+    //npcbot
+    int32 GetTimer() const { return m_timer; }
+    //end npcbot
     int32 GetCastTime() const { return m_casttime; }
     bool IsAutoRepeat() const { return m_autoRepeat; }
     void SetAutoRepeat(bool rep) { m_autoRepeat = rep; }
@@ -753,7 +756,7 @@ public:
     HitTriggerSpellList m_hitTriggerSpells;
 
     // effect helpers
-    void SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* properties, uint32 numSummons);
+    void SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* properties, uint32 numSummons, bool personalSpawn);
     void CalculateJumpSpeeds(uint8 i, float dist, float& speedxy, float& speedz);
 
     SpellCastResult CanOpenLock(uint32 effIndex, uint32 lockid, SkillType& skillid, int32& reqSkillValue, int32& skillValue);

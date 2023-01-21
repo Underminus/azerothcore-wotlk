@@ -522,8 +522,8 @@ public:
     void ClearZoneScript();
     [[nodiscard]] ZoneScript* GetZoneScript() const { return m_zoneScript; }
 
-    TempSummon* SummonCreature(uint32 id, const Position& pos, TempSummonType spwtype = TEMPSUMMON_MANUAL_DESPAWN, uint32 despwtime = 0, uint32 vehId = 0, SummonPropertiesEntry const* properties = nullptr) const;
-    TempSummon* SummonCreature(uint32 id, float x, float y, float z, float ang = 0, TempSummonType spwtype = TEMPSUMMON_MANUAL_DESPAWN, uint32 despwtime = 0, SummonPropertiesEntry const* properties = nullptr);
+    TempSummon* SummonCreature(uint32 id, const Position& pos, TempSummonType spwtype = TEMPSUMMON_MANUAL_DESPAWN, uint32 despwtime = 0, uint32 vehId = 0, SummonPropertiesEntry const* properties = nullptr, bool visibleBySummonerOnly = false) const;
+    TempSummon* SummonCreature(uint32 id, float x, float y, float z, float ang = 0, TempSummonType spwtype = TEMPSUMMON_MANUAL_DESPAWN, uint32 despwtime = 0, SummonPropertiesEntry const* properties = nullptr, bool visibleBySummonerOnly = false);
     GameObject* SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime, bool checkTransport = true, GOSummonType summonType = GO_SUMMON_TIMED_OR_CORPSE_DESPAWN);
     Creature*   SummonTrigger(float x, float y, float z, float ang, uint32 dur, bool setLevel = false, CreatureAI * (*GetAI)(Creature*) = nullptr);
     void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
@@ -587,6 +587,9 @@ public:
     [[nodiscard]] float GetTransOffsetY() const { return m_movementInfo.transport.pos.GetPositionY(); }
     [[nodiscard]] float GetTransOffsetZ() const { return m_movementInfo.transport.pos.GetPositionZ(); }
     [[nodiscard]] float GetTransOffsetO() const { return m_movementInfo.transport.pos.GetOrientation(); }
+    //npcbot: TC method transfer
+    [[nodiscard]] Position const& GetTransOffset() const { return m_movementInfo.transport.pos; }
+    //end npcbot
     [[nodiscard]] uint32 GetTransTime()   const { return m_movementInfo.transport.time; }
     [[nodiscard]] int8 GetTransSeat()     const { return m_movementInfo.transport.seat; }
     [[nodiscard]] virtual ObjectGuid GetTransGUID()   const;

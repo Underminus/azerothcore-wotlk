@@ -17,13 +17,52 @@
 #include "Pet.h"
 #include "SpellInfo.h"
 
+//npcbot
+#if not(defined(MOD_PRESENT_NPCBOTS)) || MOD_PRESENT_NPCBOTS != 1
+ #error "NPCBots mod is not installed! This version of Autobalance only supports AzerothCore+NPCBots."
+#endif
+#include "botmgr.h"
+
+uint32 GetPlayersCountExceptGMs(Map const* map)
+{
+    uint32 count = 0;
+    bool limitBots = BotMgr::LimitBots(map);
+    for (MapReference const& ref : map->GetPlayers())
+    {
+        if (Player const* player = ref.GetSource())
+        {
+            if (player->IsGameMaster())
+                continue;
+
+            count++;
+
+            if (player->HaveBot())
+            {
+                BotMap const* botmap = player->GetBotMgr()->GetBotMap();
+                for (BotMap::const_iterator itr = botmap->begin(); itr != botmap->end(); ++itr)
+                {
+                    Creature const* creature = itr->second;
+
+                    if (!creature || creature->IsTempBot() || (limitBots && (!creature->IsInWorld() || creature->FindMap() != map)))
+                        continue;
+
+                    count++;
+                }
+            }
+        }
+    }
+
+    return count;
+}
+//end npcbot
+
 // DPS count as 1 offensive unit. Tanks and healers count as 1 defensive unit.
 // 5 man: 1 tank, 3 dps, 1 healer = 3 offensive units and 2 defensive units.
 const float Offense5M = 1 / 3.0f, Defense5M = 1 / 2.0f;
 
 std::array<uint32, 13> WorldBosses =
 {
-    13020, // Vaelastrasz
+    13020, // Vaelastrasz (don't reinitialize)
     14890, // Taerar
     14889, // Emeriss
     14888, // Lethon
@@ -48,10 +87,10 @@ public:
 
 static bool enabled;
 
-class PlayerSettingsWorldScript : public WorldScript
+class PlayerSettingsWorld : public WorldScript
 {
 public:
-    PlayerSettingsWorldScript() : WorldScript("PlayerSettingsWorldScript") {}
+    PlayerSettingsWorld() : WorldScript("PlayerSettingsWorld") {}
 
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
@@ -73,40 +112,20 @@ enum Spells
     SPELL_BROOD_AFFLICTION_RED = 23155,
 };
 
-class PlayerSettingsPlayerScript : public PlayerScript
+class PlayerSettingsPlayer : public PlayerScript
 {
 public:
-    PlayerSettingsPlayerScript() : PlayerScript("PlayerSettingsPlayer") {}
+    PlayerSettingsPlayer() : PlayerScript("PlayerSettingsPlayer") {}
 
-    void OnUpdateArea(Player* player, uint32 oldArea, uint32 newArea) override
-    {
-        if (!enabled)
-            return;
-
-        if (player->IsGameMaster())
-            return;
-
-        Map *map = player->GetMap();
-        PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
-        Map::PlayerList const &players = map->GetPlayers();
-        mapInfo->nplayers = map->GetPlayersCountExceptGMs();
-
-        if (!mapInfo->nplayers)
-            mapInfo->nplayers = 1;
-
-        if (!mapInfo->veto)
-            mapInfo->veto = mapInfo->nplayers;
-    }
-
-    void OnGiveXP(Player *player, uint32 &amount, Unit *victim) override
+    void OnGiveXP(Player* player, uint32& amount, Unit* victim) override
     {
         if (victim)
         {
-            Map *map = player->GetMap();
+            Map* map = player->GetMap();
 
             if (map->IsDungeon() && !map->IsBattlegroundOrArena())
             {
-                PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+                PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
                 uint32 maxPlayers = ((InstanceMap *)sMapMgr->FindMap(map->GetId(), map->GetInstanceId()))->GetMaxPlayers();
 
                 amount = amount * mapInfo->nplayers / maxPlayers;
@@ -114,14 +133,14 @@ public:
         }
     }
 
-    void OnMoneyChanged(Player *player, int32 &amount) override
+    void OnMoneyChanged(Player* player, int32& amount) override
     {
-        Map *map = player->GetMap();
+        Map* map = player->GetMap();
 
         if (map->IsDungeon() && amount > 0)
         {
-            uint32 maxPlayers = ((InstanceMap *)sMapMgr->FindMap(map->GetId(), map->GetInstanceId()))->GetMaxPlayers();
-            PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+            uint32 maxPlayers = ((InstanceMap*)sMapMgr->FindMap(map->GetId(), map->GetInstanceId()))->GetMaxPlayers();
+            PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
 
             amount = amount * mapInfo->nplayers / maxPlayers;
         }
@@ -171,15 +190,15 @@ public:
     }
 };
 
-bool isWorldBoss(Unit *creature)
+bool isWorldBoss(Unit* creature)
 {
     return std::find(WorldBosses.begin(), WorldBosses.end(), creature->GetEntry()) != WorldBosses.end();
 }
 
-class PlayerSettingsUnitScript : public UnitScript
+class PlayerSettingsUnit : public UnitScript
 {
 public:
-    PlayerSettingsUnitScript() : UnitScript("PlayerSettingsUnitScript", true) {}
+    PlayerSettingsUnit() : UnitScript("PlayerSettingsUnit", true) {}
 
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* /*spellInfo*/) override
     {
@@ -212,12 +231,12 @@ public:
     }
 
 private:
-    bool inDungeon(Unit *target, Unit *attacker)
+    bool inDungeon(Unit* target, Unit* attacker)
     {
         return target->GetMap()->IsDungeon() && attacker->GetMap()->IsDungeon();
     }
 
-    bool inBattleground(Unit *target, Unit *attacker)
+    bool inBattleground(Unit* target, Unit* attacker)
     {
         return target->GetMap()->IsBattleground() && attacker->GetMap()->IsBattleground();
     }
@@ -261,10 +280,10 @@ private:
             defense = 1 / (2 + (maxPlayers / 5.0f));
 
         float multiplier = 1.0f;
-        bool isAttackerPlayer = attacker->GetTypeId() == TYPEID_PLAYER;
-        bool isAttackerPet = isPlayerPet(attacker);
-        bool isTargetPlayer = target->GetTypeId() == TYPEID_PLAYER;
-        bool isTargetPet = isPlayerPet(target);
+        bool isAttackerPlayer = attacker->GetTypeId() == TYPEID_PLAYER || (attacker->GetTypeId() == TYPEID_UNIT && attacker->ToCreature()->IsNPCBot());
+        bool isAttackerPet = isPlayerPet(attacker) || (attacker->GetTypeId() == TYPEID_UNIT && attacker->ToCreature()->IsNPCBotPet());
+        bool isTargetPlayer = target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot());
+        bool isTargetPet = isPlayerPet(target) || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBotPet());
         bool isSelfHarm = (isAttackerPlayer && isTargetPlayer) && attacker->GetGUID() == target->GetGUID() && isDamage;
         bool isCharmedPlayer = isAttackerPlayer && attacker->GetCharmerGUID();
 
@@ -296,22 +315,59 @@ private:
     }
 };
 
-class PlayerSettingsAllMapScript : public AllMapScript
+class PlayerSettingsAllMap : public AllMapScript
 {
-public:
-    PlayerSettingsAllMapScript() : AllMapScript("PlayerSettingsAllMapScript") {}
+    //npcbot
+    class PlayersCountRecheckEvent : public BasicEvent
+    {
+    public:
+        explicit PlayersCountRecheckEvent(PlayerSettingsAllMap* script, Map* map, Player const* player)
+            : _script(script), _map(map), _player(player) {}
+        PlayersCountRecheckEvent(PlayersCountRecheckEvent const&) = delete;
 
-    void OnPlayerEnterAll(Map *map, Player *player)
+        bool Execute(uint64 /*e_time*/, uint32 /*p_time*/)
+        {
+            if (_player->HaveBot())
+                _script->AfterBotsEnter(_map, _player);
+            return true;
+        }
+
+    private:
+        PlayerSettingsAllMap* _script;
+        Map* _map;
+        Player const* _player;
+    };
+    //end npcbot
+
+public:
+    PlayerSettingsAllMap() : AllMapScript("PlayerSettingsAllMap") {}
+
+    //npcbot
+    void AfterBotsEnter(Map* map, Player const* player)
+    {
+        PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+        mapInfo->nplayers = GetPlayersCountExceptGMs(map);
+
+        for (MapReference const& ref : map->GetPlayers())
+            if (Player const* p = ref.GetSource())
+                ChatHandler(p->GetSession()).PSendSysMessage("%s's bots entered the map. The minions of hell grow stronger.", player->GetName().c_str());
+    }
+    //end npcbot
+
+    void OnPlayerEnterAll(Map* map, Player* player)
     {
         if (!enabled)
             return;
 
-        if (player->IsGameMaster())
-            return;
+        PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+        Map::PlayerList const& players = map->GetPlayers();
+        mapInfo->nplayers = GetPlayersCountExceptGMs(map);
 
-        PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
-        Map::PlayerList const &players = map->GetPlayers();
-        mapInfo->nplayers = map->GetPlayersCountExceptGMs();
+        //npcbot: recalculate players count once all bots are teleported
+        //event will be automatically deleted if player teleports out of the map before execution
+        //max teleport delay for bot is 8000ms
+        player->m_Events.AddEvent(new PlayersCountRecheckEvent(this, map, player), player->m_Events.CalculateTime(8500));
+        //end npcbot
 
         if (!mapInfo->nplayers)
             mapInfo->nplayers = 1;
@@ -319,15 +375,20 @@ public:
         if (!mapInfo->veto)
             mapInfo->veto = mapInfo->nplayers;
 
+        if (player->IsGameMaster())
+            return;
+
         for (Map::PlayerList::const_iterator iter = players.begin(); iter != players.end(); ++iter)
-            if (Player *player = iter->GetSource())
+        {
+            if (Player* player = iter->GetSource())
             {
                 if (mapInfo->nplayers > 1)
                 {
                     if (map->GetEntry()->IsDungeon())
-                        ChatHandler(player->GetSession()).PSendSysMessage("%s has entered the instance. The minions of hell grow stronger.", player->GetName().c_str());
+                        ChatHandler(player->GetSession()).PSendSysMessage("%s has entered the map. The minions of hell grow stronger.", player->GetName().c_str());
                 }
             }
+        }
     }
 
     void OnPlayerLeaveAll(Map *map, Player *player)
@@ -342,26 +403,28 @@ public:
         Map::PlayerList const &players = map->GetPlayers();
 
         for (Map::PlayerList::const_iterator iter = players.begin(); iter != players.end(); ++iter)
+        {
             if (Player *player = iter->GetSource())
             {
                 if (!player->IsInCombat())
-                    mapInfo->nplayers = map->GetPlayersCountExceptGMs() - 1;
+                    mapInfo->nplayers = GetPlayersCountExceptGMs(map) - 1;
 
                 if (mapInfo->nplayers > 0)
                 {
                     if (map->GetEntry()->IsDungeon())
-                        ChatHandler(player->GetSession()).PSendSysMessage("%s has left the instance. The minions of hell grow weaker.", player->GetName().c_str());
+                        ChatHandler(player->GetSession()).PSendSysMessage("%s has left the map. The minions of hell grow weaker.", player->GetName().c_str());
                 }
             }
+        }
     }
 };
 
-class PlayerSettingsAllCreatureScript : public AllCreatureScript
+class PlayerSettingsAllCreature : public AllCreatureScript
 {
 public:
-    PlayerSettingsAllCreatureScript() : AllCreatureScript("PlayerSettingsAllCreatureScript") {}
+    PlayerSettingsAllCreature() : AllCreatureScript("PlayerSettingsAllCreature") {}
 
-    void OnAllCreatureUpdate(Creature *creature, uint32 /*diff*/) override
+    void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override
     {
         if (!enabled)
             return;
@@ -369,7 +432,7 @@ public:
         ModifyCreatureAttributes(creature);
     }
 
-    void ModifyCreatureAttributes(Creature *creature)
+    void ModifyCreatureAttributes(Creature* creature)
     {
         if (!creature || !creature->GetMap())
             return;
@@ -381,21 +444,26 @@ public:
             if (!isWorldBoss(creature))
                 return;
 
-        if (((creature->IsHunterPet() || creature->IsPet() || creature->IsSummon()) && creature->IsControlledByPlayer()))
+        if (((creature->IsHunterPet() || creature->IsTotem() || creature->IsPet() || creature->IsSummon()) && creature->IsControlledByPlayer()))
             return;
 
-        PlayerSettingsMapInfo *mapInfo = creature->GetMap()->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
-        InstanceMap *instanceMap = ((InstanceMap *)sMapMgr->FindMap(creature->GetMapId(), creature->GetInstanceId()));
+        if (creature->IsNPCBotOrPet())
+            return;
+
+        PlayerSettingsMapInfo* mapInfo = creature->GetMap()->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+        InstanceMap* instanceMap = ((InstanceMap*)sMapMgr->FindMap(creature->GetMapId(), creature->GetInstanceId()));
         uint32 nplayers = std::max(mapInfo->nplayers, mapInfo->veto);
         uint32 maxPlayers = instanceMap->GetMaxPlayers();
 
         if (maxPlayers == 0 && instanceMap->GetEntry()->IsWorldMap())
             maxPlayers = MAXRAIDSIZE;
 
-        CreatureTemplate const *creatureTemplate = creature->GetCreatureTemplate();
-        CreatureBaseStats const *stats = sObjectMgr->GetCreatureBaseStats(creature->getLevel(), creatureTemplate->unit_class);
+        CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate();
+        CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(creature->getLevel(), creatureTemplate->unit_class);
         uint32 baseHealth = stats->GenerateHealth(creatureTemplate);
+        uint32 baseMana = stats->GenerateMana(creatureTemplate);
         uint32 scaledHealth = 0;
+        uint32 scaledMana = 0;
 
         float offense = Offense5M;
 
@@ -404,41 +472,57 @@ public:
 
         float multiplier = offense + (1 - offense) / (maxPlayers - 1) * (nplayers - 1);
         scaledHealth = round((float)baseHealth * multiplier + 1.0f);
+        scaledMana = round((float)baseMana * multiplier);
 
-        uint32 previousHealth = creature->GetHealth();
         uint32 previousMaxHealth = creature->GetMaxHealth();
+        uint32 previousMaxMana = creature->GetMaxPower(POWER_MANA);
+        uint32 previousHealth = creature->GetHealth();
+        uint32 previousMana = creature->GetPower(POWER_MANA);
+        Powers powerType = creature->getPowerType();
 
-        if (scaledHealth != previousMaxHealth)
+        if (scaledHealth != previousMaxHealth || scaledMana != previousMaxMana)
         {
             creature->SetCreateHealth(scaledHealth);
             creature->SetMaxHealth(scaledHealth);
             creature->ResetPlayerDamageReq();
+            creature->SetCreateMana(scaledMana);
+            creature->SetMaxPower(POWER_MANA, scaledMana);
             creature->SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, (float)scaledHealth);
+            creature->SetModifierValue(UNIT_MOD_MANA, BASE_VALUE, (float)scaledMana);
         }
 
         uint32 scaledCurrentHealth = previousHealth && previousMaxHealth ? float(scaledHealth) / float(previousMaxHealth) * float(previousHealth) : 0;
+        uint32 scaledCurrentMana = previousMana && previousMaxMana ? float(scaledMana) / float(previousMaxMana) * float(previousMana) : 0;
 
-        static bool initialized;
         if (isWorldBoss(creature))
         {
             creature->SetHealth(scaledCurrentHealth);
+            if (powerType == POWER_MANA)
+                creature->SetPower(POWER_MANA, scaledCurrentMana);
+            else
+                creature->setPowerType(powerType); // fix creatures with different power types
             creature->UpdateAllStats();
             return;
         }
 
+        static bool initialized;
         if (!initialized)
         {
             initialized = true;
             creature->SetHealth(scaledCurrentHealth);
+            if (powerType == POWER_MANA)
+                creature->SetPower(POWER_MANA, scaledCurrentMana);
+            else
+                creature->setPowerType(powerType); // fix creatures with different power types
             creature->UpdateAllStats();
         }
     }
 };
 
-class PlayerSettingsCommandScript : public CommandScript
+class PlayerSettingsCommand : public CommandScript
 {
 public:
-    PlayerSettingsCommandScript() : CommandScript("PlayerSettingsCommandScript") {}
+    PlayerSettingsCommand() : CommandScript("PlayerSettingsCommand") {}
 
     Acore::ChatCommands::ChatCommandTable GetCommands() const
     {
@@ -451,19 +535,22 @@ public:
         return commands;
     }
 
-    static bool HandlePlayersCommand(ChatHandler *handler, std::string args)
+    static bool HandlePlayersCommand(ChatHandler* handler, std::string args)
     {
-        char *x = strtok((char *)args.c_str(), " ");
-        Player *player = handler->getSelectedPlayerOrSelf();
-        Map *map = player->GetMap();
-        PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
-        InstanceMap *instanceMap = ((InstanceMap *)sMapMgr->FindMap(map->GetId(), map->GetInstanceId()));
+        char* x = strtok((char*)args.c_str(), " ");
+        Player* player = handler->getSelectedPlayerOrSelf();
+        Map* map = player->GetMap();
+        PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+        InstanceMap* instanceMap = ((InstanceMap *)sMapMgr->FindMap(map->GetId(), map->GetInstanceId()));
         uint32 maxPlayers = instanceMap->GetMaxPlayers();
 
-        if (maxPlayers == 0 && instanceMap->GetEntry()->IsWorldMap())
-            maxPlayers = MAXRAIDSIZE;
+        if (!map->IsDungeon())
+        {
+            handler->SendSysMessage("Only usable in dungeons.");
+            return true;
+        }
 
-        Map::PlayerList const &players = map->GetPlayers();
+        Map::PlayerList const& players = map->GetPlayers();
         if (!players.IsEmpty())
         {
             for (Map::PlayerList::const_iterator iter = players.begin(); iter != players.end(); ++iter)
@@ -492,33 +579,26 @@ public:
         }
 
         if (!players.IsEmpty())
-        {
             for (Map::PlayerList::const_iterator iter = players.begin(); iter != players.end(); ++iter)
-            {
-                if (Player *player = iter->GetSource())
-                {
+                if (Player* player = iter->GetSource())
                     ChatHandler(player->GetSession()).PSendSysMessage("Players set to %i.", std::max(mapInfo->nplayers, mapInfo->veto));
-                }
-            }
-        }
 
         return true;
     }
 
     static bool HandlePlayerSettingsCommand(ChatHandler *handler)
     {
+        Player* player = handler->getSelectedPlayerOrSelf();
 
-        Player *player = handler->getSelectedPlayerOrSelf();
-
-        Map *map = player->GetMap();
+        Map* map = player->GetMap();
         if (!map)
             return false;
 
-        PlayerSettingsMapInfo *mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
+        PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
         if (!mapInfo)
             return false;
 
-        InstanceMap *instanceMap = ((InstanceMap *)sMapMgr->FindMap(player->GetMapId(), player->GetInstanceId()));
+        InstanceMap* instanceMap = ((InstanceMap *)sMapMgr->FindMap(player->GetMapId(), player->GetInstanceId()));
         if (!instanceMap)
             return false;
 
@@ -551,10 +631,10 @@ public:
 
 void AddPlayerSettingsScripts()
 {
-    new PlayerSettingsWorldScript();
-    new PlayerSettingsPlayerScript();
-    new PlayerSettingsUnitScript();
-    new PlayerSettingsAllMapScript();
-    new PlayerSettingsAllCreatureScript();
-    new PlayerSettingsCommandScript();
+    new PlayerSettingsWorld();
+    new PlayerSettingsPlayer();
+    new PlayerSettingsUnit();
+    new PlayerSettingsAllMap();
+    new PlayerSettingsAllCreature();
+    new PlayerSettingsCommand();
 }
