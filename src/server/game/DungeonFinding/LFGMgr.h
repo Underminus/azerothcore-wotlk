@@ -580,10 +580,6 @@ namespace lfg
 
         void SetDungeon(ObjectGuid guid, uint32 dungeon);
 
-        LFGDungeonData const* GetLFGDungeon(uint32 id);
-        LfgType GetDungeonType(uint32 dungeon);
-        LfgDungeonSet const& GetDungeonsByRandom(uint32 randomdungeon);
-
     private:
         TeamId GetTeam(ObjectGuid guid);
         void RestoreState(ObjectGuid guid, char const* debugMsg);
@@ -595,6 +591,7 @@ namespace lfg
         void SetCanOverrideRBState(ObjectGuid guid, bool val);
         void GetCompatibleDungeons(LfgDungeonSet& dungeons, LfgGuidSet const& players, LfgLockPartyMap& lockMap);
         void _SaveToDB(ObjectGuid guid);
+        LFGDungeonData const* GetLFGDungeon(uint32 id);
 
         // Proposals
         void RemoveProposal(LfgProposalContainer::iterator itProposal, LfgUpdateType type);
@@ -602,6 +599,8 @@ namespace lfg
 
         // Generic
         LFGQueue& GetQueue(ObjectGuid guid);
+        LfgDungeonSet const& GetDungeonsByRandom(uint32 randomdungeon);
+        LfgType GetDungeonType(uint32 dungeon);
 
         void SendLfgBootProposalUpdate(ObjectGuid guid, LfgPlayerBoot const& boot);
         void SendLfgJoinResult(ObjectGuid guid, LfgJoinResultData const& data);

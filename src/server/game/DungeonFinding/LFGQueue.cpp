@@ -293,6 +293,21 @@ namespace lfg
         if (numLfgGroups > 1)
             return LFG_INCOMPATIBLES_MULTIPLE_LFG_GROUPS;
 
+        // Group with less that MAXGROUPSIZE members always compatible
+        if (!sLFGMgr->IsTesting() && check.size() == 1 && numPlayers < MAXGROUPSIZE)
+        {
+            LfgQueueDataContainer::iterator itQueue = QueueDataStore.find(check.front());
+            LfgRolesMap roles = itQueue->second.roles;
+            uint8 roleCheckResult = LFGMgr::CheckGroupRoles(roles);
+            strGuids.addRoles(roles);
+            itQueue->second.bestCompatible.clear(); // this may be left after a failed proposal (not cleared, because UpdateQueueTimers would try to generate it with every update)
+            //UpdateBestCompatibleInQueue(itQueue, strGuids);
+            AddToCompatibles(strGuids);
+            if (roleCheckResult && roleCheckResult <= 15)
+                foundMask |= ( (((uint64)1) << (roleCheckResult - 1)) | (((uint64)1) << (16 + roleCheckResult - 1)) | (((uint64)1) << (32 + roleCheckResult - 1)) | (((uint64)1) << (48 + roleCheckResult - 1)) );
+            return LFG_COMPATIBLES_WITH_LESS_PLAYERS;
+        }
+
         if (numPlayers > MAXGROUPSIZE)
             return LFG_INCOMPATIBLES_TOO_MUCH_PLAYERS;
 
@@ -375,7 +390,8 @@ namespace lfg
             LFGMgr::CheckGroupRoles(proposalRoles);          // assing new roles
         }
 
-        if (!sLFGMgr->IsTesting() && check.size() == 1 && (numPlayers == 1 || (numPlayers < MAXGROUPSIZE && numLfgGroups == 1)))
+        // Enough players?
+        if (!sLFGMgr->IsTesting() && numPlayers != MAXGROUPSIZE)
         {
             strGuids.addRoles(proposalRoles);
             for (uint8 i = 0; i < 5 && check.guids[i]; ++i)
