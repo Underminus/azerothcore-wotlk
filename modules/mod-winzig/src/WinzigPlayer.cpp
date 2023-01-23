@@ -10,6 +10,13 @@
 #include "WinzigWorld.h"
 #include "Group.h"
 
+const std::string SUBJECT = "I got what you need!";
+const std::string BODY =
+    "Ah, potential customer. Here's a sample of my wares.\n\n"
+    "Meet me in Booty Bay to get the best deals, anywhere!\n\n"
+    "Be careful out there,\n"
+    "Winzig";
+
 class WinzigPlayer : public PlayerScript
 {
 public:
@@ -33,13 +40,32 @@ public:
             sendDailyReward(player);
     }
 
-    void OnLevelChanged(Player *player, uint8 /*oldlevel*/) override
+    void OnLevelChanged(Player *player, uint8 oldlevel) override
     {
         if (!WinzigWorld::Enabled)
             return;
 
         uint32 amount = 0;
         uint8 level = player->getLevel();
+
+        if (oldlevel < 20 && level >= 20)
+        {
+            CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+
+            Item *boxes = Item::CreateItem(WinzigWorld::StarterBox, 20);
+            boxes->SaveToDB(trans);
+
+            Item *pouch = Item::CreateItem(WinzigWorld::ReagentPouch, 1);
+            pouch->SaveToDB(trans);
+
+            MailSender sender(WinzigWorld::NPC);
+            MailDraft draft(SUBJECT, BODY);
+            draft.AddItem(boxes);
+            draft.AddItem(pouch);
+            draft.SendMailTo(trans, MailReceiver(player), sender);
+
+            CharacterDatabase.CommitTransaction(trans);
+        }
 
         if (level <= 19)
             amount = 5;
