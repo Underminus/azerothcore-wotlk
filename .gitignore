@@ -99,7 +99,6 @@ local.properties
 #
 # ==================
 
-<<<<<<< HEAD
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode
 
@@ -123,7 +122,5 @@ local.properties
 
 data/dbc/*
 !data/dbc/.gitkeep
-=======
 #NPCBots
 !/data/sql/custom/db_world/
->>>>>>> trickerer/npcbots_3.3.5
