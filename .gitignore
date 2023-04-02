@@ -27,6 +27,9 @@
 /.env*
 /apps/joiner
 /deps/deno
+/data/sql/custom/*
+/src/server/scripts/Custom/*
+!/src/server/scripts/Custom/README.md
 
 /docker-compose.override.yml
 
@@ -96,6 +99,7 @@ local.properties
 #
 # ==================
 
+<<<<<<< HEAD
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode
 
@@ -119,3 +123,7 @@ local.properties
 
 data/dbc/*
 !data/dbc/.gitkeep
+=======
+#NPCBots
+!/data/sql/custom/db_world/
+>>>>>>> trickerer/npcbots_3.3.5

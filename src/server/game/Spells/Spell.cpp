@@ -2148,7 +2148,14 @@ uint32 Spell::GetSearcherTypeMask(SpellTargetObjectTypes objType, ConditionList*
     if (!m_spellInfo->HasAttribute(SPELL_ATTR2_ALLOW_DEAD_TARGET))
         retMask &= ~GRID_MAP_TYPE_MASK_CORPSE;
     if (m_spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_PLAYER))
+    {
+        //npcbot: do not exclude creatures, see WorldObjectSpellNearbyTargetCheck, WorldObjectSpellAreaTargetCheck
+        if (retMask & GRID_MAP_TYPE_MASK_CREATURE)
+            retMask &= GRID_MAP_TYPE_MASK_CORPSE | GRID_MAP_TYPE_MASK_PLAYER | GRID_MAP_TYPE_MASK_CREATURE;
+        else
+        //end npcbot
         retMask &= GRID_MAP_TYPE_MASK_CORPSE | GRID_MAP_TYPE_MASK_PLAYER;
+    }
     if (m_spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_GHOSTS))
         retMask &= GRID_MAP_TYPE_MASK_PLAYER;
 
@@ -5773,8 +5780,8 @@ SpellCastResult Spell::CheckCast(bool strict)
             //TC_LOG_ERROR("spells", "%s has cd of %u on %s", m_caster->GetName().c_str(), m_caster->ToCreature()->GetCreatureSpellCooldownDelay(m_spellInfo->Id), m_spellInfo->SpellName[0]);
             if (m_triggeredByAuraSpell)
                 return SPELL_FAILED_DONT_REPORT;
-            else
-                return SPELL_FAILED_NOT_READY;
+            //else
+            //    return SPELL_FAILED_NOT_READY;
         }
         //end npcbot
     }
@@ -6465,7 +6472,8 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                     // chance for fail at lockpicking attempt
                     // second check prevent fail at rechecks
-                    if (skillId != SKILL_NONE && (!m_selfContainer || ((*m_selfContainer) != this)))
+                    // herbalism and mining cannot fail as of patch 3.1.0
+                    if (skillId != SKILL_NONE && skillId != SKILL_HERBALISM && skillId != SKILL_MINING && (!m_selfContainer || ((*m_selfContainer) != this)))
                     {
                         // chance for failure in orange lockpick
                         if (skillId == SKILL_LOCKPICKING && reqSkillValue > irand(skillValue - 25, skillValue + 37))
@@ -6760,6 +6768,13 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                         if (target->GetCharmerGUID())
                             return SPELL_FAILED_CHARMED;
+
+                        //npcbot: do not allow to charm owned npcbots
+                        if (target->GetCreatorGUID() && target->GetCreatorGUID().IsPlayer())
+                            return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
+                        else if (target->IsNPCBotOrPet())
+                            return SPELL_FAILED_CANT_BE_CHARMED;
+                        //end npcbot
 
                         if (target->GetOwnerGUID() && target->GetOwnerGUID().IsPlayer())
                             return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
@@ -9144,6 +9159,11 @@ namespace Acore
 
     bool WorldObjectSpellNearbyTargetCheck::operator()(WorldObject* target)
     {
+        //npcbot: custom check 1 for targeting bots by spells with SPELL_ATTR3_ONLY_ON_PLAYER
+        if (_spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_PLAYER) && target->GetTypeId() == TYPEID_UNIT && !target->IsNPCBot())
+            return false;
+        //end npcbot
+
         float dist = target->GetDistance(*_position);
         if (dist < _range && WorldObjectSpellTargetCheck::operator ()(target))
         {
@@ -9170,6 +9190,11 @@ namespace Acore
             return false;
         else if (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsAvoidingAOE()) // pussywizard
             return false;
+        //npcbot: custom check 2 for targeting bots by spells with SPELL_ATTR3_ONLY_ON_PLAYER
+        else if (_spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_PLAYER) && target->GetTypeId() == TYPEID_UNIT && !target->IsNPCBot())
+            return false;
+        //end npcbot
+
         return WorldObjectSpellTargetCheck::operator ()(target);
     }
 

@@ -3,11 +3,26 @@
 
 #include "botcommon.h"
 
+#include <functional>
 #include <set>
 #include <shared_mutex>
 #include <vector>
 
 class Creature;
+class Item;
+class WanderNode;
+class WorldLocation;
+
+struct EquipmentInfo;
+struct CreatureTemplate;
+struct FactionEntry;
+struct ItemTemplate;
+struct Position;
+
+enum LocaleConstant;
+
+constexpr float MIN_WANDER_NODE_DISTANCE = VISIBILITY_DISTANCE_NORMAL * 0.5f;
+constexpr float MAX_WANDER_NODE_DISTANCE = SIZE_OF_GRIDS * 1.5f;
 
 enum NpcBotDataUpdateType
 {
@@ -123,6 +138,8 @@ typedef std::set<Creature const*> NpcBotRegistry;
 class BotDataMgr
 {
     public:
+        static void Update(uint32 diff);
+
         static void LoadNpcBots(bool spawn = true);
         static void LoadNpcBotGroupData();
 
@@ -150,6 +167,22 @@ class BotDataMgr
         static ObjectGuid GetNPCBotGuid(uint32 entry);
         static std::vector<uint32> GetExistingNPCBotIds();
         static uint8 GetOwnedBotsCount(ObjectGuid owner_guid, uint32 class_mask = 0);
+
+        static void LoadWanderMap(bool reload = false);
+        static void GenerateWanderingBots();
+        static void CreateWanderingBotsSortedGear();
+        static Item* GenerateWanderingBotItem(uint8 slot, uint8 botclass, uint8 level, std::function<bool(ItemTemplate const*)>&& check);
+        static CreatureTemplate const* GetBotExtraCreatureTemplate(uint32 entry);
+        static EquipmentInfo const* GetBotEquipmentInfo(uint32 entry);
+
+        static uint8 GetLevelBonusForBotRank(uint32 rank);
+        static uint8 GetMaxLevelForMapId(uint32 mapId);
+        static uint8 GetMinLevelForBotClass(uint8 m_class);
+        static int32 GetBotBaseReputation(Creature const* bot, FactionEntry const* factionEntry);
+        static TeamId GetTeamForFaction(uint32 factionTemplateId);
+        static bool IsWanderNodeAvailableForBotFaction(WanderNode const* wp, uint32 factionTemplateId);
+        static WanderNode const* GetNextWanderNode(WanderNode const* curNode, WanderNode const* lastNode, Position const* curPos, uint32 faction, uint32 lvl, bool random);
+        static WanderNode const* GetClosestWanderNode(WorldLocation const* loc);
 
         static std::shared_mutex* GetLock();
 
