@@ -11,6 +11,9 @@ RUN rm -rf /var/lib/apt/lists/*
 
 FROM base as builder
 
+ENV TZ=Australia/Sydney
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
+
 COPY .git /azerothcore/.git
 COPY apps /azerothcore/apps
 COPY bin /azerothcore/bin
@@ -31,6 +34,9 @@ RUN --mount=type=cache,target=/azerothcore/build \
   make install
 
 FROM base as server
+
+ENV TZ=Australia/Sydney
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
 
 COPY --from=wobgob/client-data:v16 /azerothcore/data /azerothcore/data
 COPY --from=builder /azerothcore/data /azerothcore/data
