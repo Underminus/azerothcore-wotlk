@@ -4,8 +4,8 @@ ENV TZ=Australia/Sydney
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install --assume-yes git cmake make clang \
-    libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev \
+RUN apt-get update && apt-get install --assume-yes git cmake make clang \ tzdata
+RUN libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev \
     libboost-all-dev mysql-server
 RUN rm -rf /var/lib/apt/lists/*
 
