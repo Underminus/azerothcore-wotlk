@@ -1,18 +1,15 @@
 FROM ubuntu:22.04 as base
 
-ENV TZ=Australia/Sydney
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
-
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install --assume-yes git cmake make clang \ tzdata
-RUN libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev \
+RUN apt-get update && apt-get install --assume-yes git cmake make clang \ 
+    libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev \
     libboost-all-dev mysql-server
 RUN rm -rf /var/lib/apt/lists/*
 
-FROM base as builder
-
 ENV TZ=Australia/Sydney
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
+
+FROM base as builder
 
 COPY .git /azerothcore/.git
 COPY apps /azerothcore/apps
@@ -34,9 +31,6 @@ RUN --mount=type=cache,target=/azerothcore/build \
   make install
 
 FROM base as server
-
-ENV TZ=Australia/Sydney
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
 
 COPY --from=wobgob/client-data:v16 /azerothcore/data /azerothcore/data
 COPY --from=builder /azerothcore/data /azerothcore/data
