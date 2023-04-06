@@ -3,7 +3,7 @@ FROM ubuntu:22.04 as base
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install --assume-yes git cmake make clang \ 
     libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev \
-    libboost-all-dev mysql-server
+    libboost-all-dev mysql-server tzdata
 RUN rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Australia/Sydney
