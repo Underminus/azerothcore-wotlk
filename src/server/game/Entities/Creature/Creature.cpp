@@ -2588,12 +2588,6 @@ bool Creature::CanAssistTo(Unit const* u, Unit const* enemy, bool checkfaction /
     if (GetCharmerOrOwnerGUID())
         return false;
 
-    // Check for ignore assistance extra flag
-    if (m_creatureInfo->HasFlagsExtra(CREATURE_FLAG_EXTRA_IGNORE_ASSISTANCE_CALL))
-    {
-        return false;
-    }
-
     // only from same creature faction
     if (checkfaction)
     {
@@ -3893,7 +3887,7 @@ std::string Creature::GetDebugInfo() const
 }
 
 //NPCBOT
-bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool generated, uint32 entry, Position* pos)
+bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool generated, uint32 entry, Position const* pos)
 {
     CreatureData const* data = sObjectMgr->GetCreatureData(spawnId);
     if (!data)
@@ -4004,6 +3998,11 @@ bool Creature::IsFreeBot() const
 bool Creature::IsWandererBot() const
 {
     return bot_AI ? bot_AI->IsWanderer() : bot_pet_AI ? bot_pet_AI->IsWanderer() : false;
+}
+
+Battleground* Creature::GetBotBG() const
+{
+    return bot_AI ? bot_AI->GetBG() : nullptr;
 }
 
 uint32 Creature::GetBotRoles() const
