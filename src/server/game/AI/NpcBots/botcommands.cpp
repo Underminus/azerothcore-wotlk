@@ -931,7 +931,7 @@ public:
 
         if (!linkIds)
         {
-            handler->SendSysMessage("Syntax: npcbot wp links set #[ids...]");
+            handler->SendSysMessage("Syntax: npcbot wp links set #[ids...] #[oneway: true/false]");
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -2777,7 +2777,7 @@ public:
             return false;
         }
 
-        if (!(creInfo->flags_extra & CREATURE_FLAG_EXTRA_NPCBOT))
+        if (!creInfo->IsNPCBot())
         {
             handler->PSendSysMessage("creature id %u is not a npcbot!", id);
             handler->SetSentErrorMessage(true);
@@ -2968,7 +2968,7 @@ public:
             return false;
         }
 
-        if (!(creInfo->flags_extra & CREATURE_FLAG_EXTRA_NPCBOT))
+        if (!creInfo->IsNPCBot())
         {
             handler->PSendSysMessage("creature %u is not a npcbot!", id);
             handler->SetSentErrorMessage(true);
@@ -3035,7 +3035,8 @@ public:
             return false;
         }
 
-        BotDataMgr::AddNpcBotData(id, bot_ai::DefaultRolesForClass(_botExtras->bclass), bot_ai::DefaultSpecForClass(_botExtras->bclass), creature->GetCreatureTemplate()->faction);
+        uint8 bot_spec = bot_ai::SelectSpecForClass(_botExtras->bclass);
+        BotDataMgr::AddNpcBotData(id, bot_ai::DefaultRolesForClass(_botExtras->bclass, bot_spec), bot_spec, creature->GetCreatureTemplate()->faction);
 
         creature->SaveToDB(map->GetId(), (1 << map->GetSpawnMode()), chr->GetPhaseMaskForSpawn());
 

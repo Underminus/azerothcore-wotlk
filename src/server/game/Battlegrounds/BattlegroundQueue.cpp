@@ -151,7 +151,7 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
     ginfo->JoinTime                     = GameTime::GetGameTimeMS().count();
     ginfo->RemoveInviteTime             = 0;
     ginfo->teamId                       = leader->GetTeamId();
-    ginfo->RealTeamID                   = leader->GetTeamId(true);
+    ginfo->RealTeamID                   = leader->GetTeamId();
     ginfo->ArenaTeamRating              = arenaRating;
     ginfo->ArenaMatchmakerRating        = matchmakerRating;
     ginfo->PreviousOpponentsTeamId      = opponentsArenaTeamId;
@@ -230,7 +230,8 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
         SendMessageBGQueue(leader, bg, bracketEntry);
 
     //npcbot: try to queue wandering bots
-    if (!isRated && !arenaType && !arenaTeamId && bgTypeId == BATTLEGROUND_WS)
+    if (!isRated && !arenaType && !arenaTeamId && !sBattlegroundMgr->isTesting() && BotMgr::IsBotGenerationEnabledBGs() &&
+        (bgTypeId == BATTLEGROUND_WS || bgTypeId == BATTLEGROUND_AB))
     {
         if (!BotDataMgr::GenerateBattlegroundBots(leader, group, this, bracketEntry, ginfo))
         {
