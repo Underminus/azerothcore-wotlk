@@ -123,4 +123,5 @@ local.properties
 data/dbc/*
 !data/dbc/.gitkeep
 #NPCBots
+!/data/sql/custom/db_characters/
 !/data/sql/custom/db_world/
