@@ -62,6 +62,7 @@ CreatureMovementData::CreatureMovementData() : Ground(CreatureGroundMovementType
 
 //npcbot
 #include "bot_ai.h"
+#include "botmgr.h"
 #include "bpet_ai.h"
 //end npcbot
 
@@ -1380,11 +1381,8 @@ void Creature::SetLootRecipient(Unit* unit, bool withGroup)
     */
     //npcbot - loot recipient of bot's vehicle is owner
     Player* player = nullptr;
-    if (unit->IsVehicle() && unit->GetCharmerGUID().IsCreature() && unit->GetCreatorGUID().IsPlayer())
-    {
-        if (Unit* uowner = unit->GetCreator())
-            player = uowner->ToPlayer();
-    }
+    if (unit->IsVehicle() && unit->GetCharmerGUID().IsCreature() && unit->GetCreator() && unit->GetCreator()->IsPlayer())
+        player = unit->GetCreator()->ToPlayer();
     else
         player = unit->GetCharmerOrOwnerPlayerOrPlayerItself();
     //end npcbot
@@ -2590,6 +2588,11 @@ bool Creature::CanAssistTo(Unit const* u, Unit const* enemy, bool checkfaction /
     if (GetCharmerOrOwnerGUID())
         return false;
 
+    //npcbot
+    if (IsNPCBotOrPet())
+        return false;
+    //end npcbot
+
     /// @todo: Implement aggro range, detection range and assistance range templates
     if (m_creatureInfo->HasFlagsExtra(CREATURE_FLAG_EXTRA_IGNORE_ALL_ASSISTANCE_CALLS))
     {
@@ -3234,6 +3237,11 @@ void Creature::SetPosition(float x, float y, float z, float o)
     if (!Acore::IsValidMapCoord(x, y, z, o))
         return;
 
+    //npcbot: send bot group update
+    if (IsNPCBot())
+        BotMgr::SetBotGroupUpdateFlag(ToCreature(), GROUP_UPDATE_FLAG_POSITION);
+    //end npcbot
+
     GetMap()->CreatureRelocation(this, x, y, z, o);
 }
 
@@ -3507,6 +3515,17 @@ void Creature::UpdateMovementFlags()
     if (!info)
         return;
 
+    //npcbot: do not update movement flags for vehicles controlled by npcbots
+    if (GetCharmerGUID().IsCreature())
+    {
+        if (CreatureTemplate const* bot_template = sObjectMgr->GetCreatureTemplate(GetCharmerGUID().GetEntry()))
+        {
+            if (bot_template->IsNPCBot())
+                return;
+        }
+    }
+    //end npcbot
+
     // Creatures with CREATURE_FLAG_EXTRA_NO_MOVE_FLAGS_UPDATE should control MovementFlags in your own scripts
     if (info->flags_extra & CREATURE_FLAG_EXTRA_NO_MOVE_FLAGS_UPDATE)
         return;
@@ -3596,6 +3615,15 @@ void Creature::SetDisplayId(uint32 modelId)
         combatReach = DEFAULT_COMBAT_REACH;
 
     SetFloatValue(UNIT_FIELD_COMBATREACH, combatReach * GetObjectScale());
+
+    //npcbot: send group update for bot pet
+    if (IsNPCBotPet())
+    {
+        if (Creature const* botPetOwner = GetBotPetAI() ? GetBotPetAI()->GetPetsOwner() : nullptr)
+            if (botPetOwner->GetBotAI()->GetGroup())
+                BotMgr::SetBotGroupUpdateFlag(botPetOwner, GROUP_UPDATE_FLAG_PET_MODEL_ID);
+    }
+    //end npcbot
 }
 
 void Creature::SetTarget(ObjectGuid guid)

@@ -4580,6 +4580,11 @@ void Spell::finish(bool ok)
     if (Creature* creatureCaster = m_caster->ToCreature())
         creatureCaster->ReleaseFocus(this);
 
+    //npcbot
+    if (!ok && m_caster->IsNPCBotOrPet())
+        BotMgr::OnBotSpellGo(m_caster, this, false);
+    //end npcbot
+
     if (!ok)
     {
         if (m_caster->GetTypeId() == TYPEID_PLAYER)
@@ -6796,7 +6801,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                             return SPELL_FAILED_CHARMED;
 
                         //npcbot: do not allow to charm owned npcbots
-                        if (target->GetCreatorGUID() && target->GetCreatorGUID().IsPlayer())
+                        if (target->GetCreator() && target->GetCreator()->IsPlayer())
                             return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
                         else if (target->IsNPCBotOrPet())
                             return SPELL_FAILED_CANT_BE_CHARMED;
