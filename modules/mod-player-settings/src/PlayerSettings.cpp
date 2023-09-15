@@ -74,6 +74,8 @@ std::array<uint32, 13> WorldBosses =
     15625, // Twilight Corrupter
     12803, // Lord Kamaeran
     15552, // Dr. Weavil
+    17711, // Doomwalker
+    18728, // Doom Lord Kazzak
     15629  // Nightmare Phantasm
 };
 
