@@ -60,7 +60,7 @@ uint32 GetPlayersCountExceptGMs(Map const* map)
 // 5 man: 1 tank, 3 dps, 1 healer = 3 offensive units and 2 defensive units.
 const float Offense5M = 1 / 3.0f, Defense5M = 1 / 2.0f;
 
-std::array<uint32, 13> WorldBosses =
+std::array<uint32, 15> WorldBosses =
 {
     13020, // Vaelastrasz (don't reinitialize)
     14890, // Taerar
