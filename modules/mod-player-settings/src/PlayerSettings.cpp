@@ -17,16 +17,10 @@
 #include "Pet.h"
 #include "SpellInfo.h"
 
-//npcbot
-#if not(defined(MOD_PRESENT_NPCBOTS)) || MOD_PRESENT_NPCBOTS != 1
- #error "NPCBots mod is not installed! This version of Autobalance only supports AzerothCore+NPCBots."
-#endif
-#include "botmgr.h"
-
 uint32 GetPlayersCountExceptGMs(Map const* map)
 {
     uint32 count = 0;
-    bool limitBots = BotMgr::LimitBots(map);
+
     for (MapReference const& ref : map->GetPlayers())
     {
         if (Player const* player = ref.GetSource())
@@ -35,26 +29,11 @@ uint32 GetPlayersCountExceptGMs(Map const* map)
                 continue;
 
             count++;
-
-            if (player->HaveBot())
-            {
-                BotMap const* botmap = player->GetBotMgr()->GetBotMap();
-                for (BotMap::const_iterator itr = botmap->begin(); itr != botmap->end(); ++itr)
-                {
-                    Creature const* creature = itr->second;
-
-                    if (!creature || creature->IsTempBot() || (limitBots && (!creature->IsInWorld() || creature->FindMap() != map)))
-                        continue;
-
-                    count++;
-                }
-            }
         }
     }
 
     return count;
 }
-//end npcbot
 
 // DPS count as 1 offensive unit. Tanks and healers count as 1 defensive unit.
 // 5 man: 1 tank, 3 dps, 1 healer = 3 offensive units and 2 defensive units.
@@ -220,16 +199,15 @@ public:
             damage = modify(target, attacker, damage);
     }
 
-    void ModifyPeriodicHealAurasTick(Unit* target, Unit* healer, uint32& heal, SpellInfo const* /*spellInfo*/) override
+    void ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, SpellInfo const* spellInfo) override
     {
-        if (check(target, healer))
-            heal = modify(target, healer, heal, false, true);
-    }
+        if (!check(target, healer))
+            return;
 
-    void ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, SpellInfo const* /*spellInfo*/) override
-    {
-        if (check(target, healer))
+        if (!spellInfo->GetDuration())
             heal = modify(target, healer, heal, false);
+        else
+            heal = modify(target, healer, heal, false, true);
     }
 
 private:
@@ -282,10 +260,10 @@ private:
             defense = 1 / (2 + (maxPlayers / 5.0f));
 
         float multiplier = 1.0f;
-        bool isAttackerPlayer = attacker->GetTypeId() == TYPEID_PLAYER || (attacker->GetTypeId() == TYPEID_UNIT && attacker->ToCreature()->IsNPCBot());
-        bool isAttackerPet = isPlayerPet(attacker) || (attacker->GetTypeId() == TYPEID_UNIT && attacker->ToCreature()->IsNPCBotPet());
-        bool isTargetPlayer = target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot());
-        bool isTargetPet = isPlayerPet(target) || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBotPet());
+        bool isAttackerPlayer = attacker->GetTypeId() == TYPEID_PLAYER;
+        bool isAttackerPet = isPlayerPet(attacker);
+        bool isTargetPlayer = target->GetTypeId() == TYPEID_PLAYER;
+        bool isTargetPet = isPlayerPet(target);
         bool isSelfHarm = (isAttackerPlayer && isTargetPlayer) && attacker->GetGUID() == target->GetGUID() && isDamage;
         bool isCharmedPlayer = isAttackerPlayer && attacker->GetCharmerGUID();
 
@@ -319,42 +297,8 @@ private:
 
 class PlayerSettingsAllMap : public AllMapScript
 {
-    //npcbot
-    class PlayersCountRecheckEvent : public BasicEvent
-    {
-    public:
-        explicit PlayersCountRecheckEvent(PlayerSettingsAllMap* script, Map* map, Player const* player)
-            : _script(script), _map(map), _player(player) {}
-        PlayersCountRecheckEvent(PlayersCountRecheckEvent const&) = delete;
-
-        bool Execute(uint64 /*e_time*/, uint32 /*p_time*/)
-        {
-            if (_player->HaveBot())
-                _script->AfterBotsEnter(_map, _player);
-            return true;
-        }
-
-    private:
-        PlayerSettingsAllMap* _script;
-        Map* _map;
-        Player const* _player;
-    };
-    //end npcbot
-
 public:
     PlayerSettingsAllMap() : AllMapScript("PlayerSettingsAllMap") {}
-
-    //npcbot
-    void AfterBotsEnter(Map* map, Player const* player)
-    {
-        PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
-        mapInfo->nplayers = GetPlayersCountExceptGMs(map);
-
-        for (MapReference const& ref : map->GetPlayers())
-            if (Player const* p = ref.GetSource())
-                ChatHandler(p->GetSession()).PSendSysMessage("%s's bots entered the map. The minions of hell grow stronger.", player->GetName().c_str());
-    }
-    //end npcbot
 
     void OnPlayerEnterAll(Map* map, Player* player)
     {
@@ -364,12 +308,6 @@ public:
         PlayerSettingsMapInfo* mapInfo = map->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");
         Map::PlayerList const& players = map->GetPlayers();
         mapInfo->nplayers = GetPlayersCountExceptGMs(map);
-
-        //npcbot: recalculate players count once all bots are teleported
-        //event will be automatically deleted if player teleports out of the map before execution
-        //max teleport delay for bot is 8000ms
-        player->m_Events.AddEvent(new PlayersCountRecheckEvent(this, map, player), player->m_Events.CalculateTime(8500));
-        //end npcbot
 
         if (!mapInfo->nplayers)
             mapInfo->nplayers = 1;
@@ -447,9 +385,6 @@ public:
                 return;
 
         if (((creature->IsHunterPet() || creature->IsTotem() || creature->IsPet() || creature->IsSummon()) && creature->IsControlledByPlayer()))
-            return;
-
-        if (creature->IsNPCBotOrPet())
             return;
 
         PlayerSettingsMapInfo* mapInfo = creature->GetMap()->CustomData.GetDefault<PlayerSettingsMapInfo>("PlayerSettingsMapInfo");

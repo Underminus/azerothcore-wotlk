@@ -95,7 +95,7 @@ public:
             return;
 
         // kill original creature
-        creatureTarget->setDeathState(JUST_DIED);
+        creatureTarget->setDeathState(DeathState::JustDied);
         creatureTarget->RemoveCorpse();
         creatureTarget->SetHealth(0);
 
