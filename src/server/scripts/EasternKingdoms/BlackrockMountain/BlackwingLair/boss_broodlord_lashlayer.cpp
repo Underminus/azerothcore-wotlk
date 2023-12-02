@@ -20,8 +20,8 @@
 #include "InstanceScript.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
-#include "blackwing_lair.h"
 #include "SpellScript.h"
+#include "blackwing_lair.h"
 
 enum Say
 {
@@ -183,7 +183,7 @@ class go_suppression_device : public GameObjectScript
                         case EVENT_SUPPRESSION_CAST:
                             if (me->GetGoState() == GO_STATE_READY)
                             {
-                                //me->CastSpell(nullptr, SPELL_SUPPRESSION_AURA);
+                                me->CastSpell(nullptr, SPELL_SUPPRESSION_AURA);
                                 me->SendCustomAnim(0);
                             }
                             _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 5s);

@@ -25,6 +25,7 @@
 #include "DatabaseEnv.h"
 #include "DynamicObject.h"
 #include "GameObject.h"
+#include "GossipDef.h"
 #include "ItemTemplate.h"
 #include "Log.h"
 #include "Mail.h"
@@ -36,7 +37,6 @@
 #include "QuestDef.h"
 #include "TemporarySummon.h"
 #include "VehicleDefines.h"
-#include "GossipDef.h"
 #include <functional>
 #include <limits>
 #include <map>
@@ -143,21 +143,6 @@ struct GameTele
 };
 
 typedef std::unordered_map<uint32, GameTele > GameTeleContainer;
-
-#define MAX_CREATURE_OUTFIT_DISPLAYS 11
-struct CreatureOutfit
-{
-    uint8 race;
-    uint8 gender;
-    uint8 face;
-    uint8 skin;
-    uint8 hair;
-    uint8 facialhair;
-    uint8 haircolor;
-    uint32 outfit[MAX_CREATURE_OUTFIT_DISPLAYS];
-};
-
-typedef std::unordered_map<uint32, CreatureOutfit > CreatureOutfitContainer;
 
 enum ScriptsType
 {
@@ -1035,7 +1020,7 @@ public:
     void LoadCreatureClassLevelStats();
     void LoadCreatureLocales();
     void LoadCreatureTemplates();
-    void LoadCreatureTemplate(Field* fields);
+    void LoadCreatureTemplate(Field* fields, bool triggerHook = false);
     void LoadCreatureTemplateAddons();
     void LoadCreatureTemplateResistances();
     void LoadCreatureTemplateSpells();
@@ -1105,8 +1090,6 @@ public:
     void LoadQuestPOI();
 
     void LoadNPCSpellClickSpells();
-
-    void LoadCreatureOutfits();
 
     void LoadGameTele();
 
@@ -1378,8 +1361,6 @@ public:
     bool AddGameTele(GameTele& data);
     bool DeleteGameTele(std::string_view name);
 
-    CreatureOutfitContainer const& GetCreatureOutfitMap() const { return _creatureOutfitStore; }
-
     [[nodiscard]] TrainerSpellData const* GetNpcTrainerSpells(uint32 entry) const
     {
         CacheTrainerSpellContainer::const_iterator  iter = _cacheTrainerSpellStore.find(entry);
@@ -1549,8 +1530,6 @@ private:
 
     PageTextContainer _pageTextStore;
     InstanceTemplateContainer _instanceTemplateStore;
-
-    CreatureOutfitContainer _creatureOutfitStore;
 
 private:
     void LoadScripts(ScriptsType type);

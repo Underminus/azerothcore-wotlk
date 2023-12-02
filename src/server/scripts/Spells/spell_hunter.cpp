@@ -759,22 +759,6 @@ class spell_hun_sniper_training : public AuraScript
 
     void HandleUpdatePeriodic(AuraEffect* aurEff)
     {
-        //npcbot: handle creatures, remove dead trigger
-        if (!GetUnitOwner()->IsAlive())
-            return;
-        if (Creature const* bot = GetUnitOwner()->ToCreature())
-        {
-            if (!bot->IsNPCBot())
-                return;
-
-            int32 baseAmount = aurEff->GetBaseAmount();
-            int32 amount = bot->isMoving() || aurEff->GetAmount() <= 0 ?
-                bot->CalculateSpellDamage(bot, GetSpellInfo(), aurEff->GetEffIndex(), &baseAmount) :
-                aurEff->GetAmount() - 1;
-            aurEff->SetAmount(amount);
-            return;
-        }
-        //end npcbot
         if (Player* playerTarget = GetUnitOwner()->ToPlayer())
         {
             int32 baseAmount = aurEff->GetBaseAmount();
@@ -935,6 +919,26 @@ class spell_hun_misdirection_proc : public AuraScript
     void Register() override
     {
         AfterEffectRemove += AuraEffectRemoveFn(spell_hun_misdirection_proc::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+// 781 - Disengage
+class spell_hun_disengage : public SpellScript
+{
+    PrepareSpellScript(spell_hun_disengage);
+
+    SpellCastResult CheckCast()
+    {
+        Unit* caster = GetCaster();
+        if (caster->GetTypeId() == TYPEID_PLAYER && !caster->IsInCombat())
+            return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+
+        return SPELL_CAST_OK;
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_hun_disengage::CheckCast);
     }
 };
 
@@ -1354,6 +1358,7 @@ void AddSC_hunter_spell_scripts()
     RegisterSpellScript(spell_hun_aspect_of_the_beast);
     RegisterSpellScript(spell_hun_ascpect_of_the_viper);
     RegisterSpellScript(spell_hun_chimera_shot);
+    RegisterSpellScript(spell_hun_disengage);
     RegisterSpellScript(spell_hun_improved_mend_pet);
     RegisterSpellScript(spell_hun_invigoration);
     RegisterSpellScript(spell_hun_last_stand_pet);

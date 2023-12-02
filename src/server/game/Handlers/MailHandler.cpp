@@ -218,9 +218,6 @@ void WorldSession::HandleSendMail(WorldPacket& recvData)
         return;
     }
 
-    if (!items_count && !sScriptMgr->CanSendMail(player, receiverGuid, mailbox, subject, body, money, COD, nullptr))
-        return;
-
     Item* items[MAX_MAIL_ITEMS];
 
     for (uint8 i = 0; i < items_count; ++i)

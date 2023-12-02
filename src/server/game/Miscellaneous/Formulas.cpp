@@ -47,7 +47,6 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
     if (mob_level >= pl_level)
     {
         uint8 nLevelDiff = mob_level - pl_level;
-
         if (nLevelDiff > 4)
             nLevelDiff = 4;
 

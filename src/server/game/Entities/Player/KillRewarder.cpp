@@ -22,10 +22,6 @@
 #include "Player.h"
 #include "SpellAuraEffects.h"
 
-//npcbot
-#include "botmgr.h"
-//end npcbot
-
 // KillRewarder incapsulates logic of rewarding player upon kill with:
 // * XP;
 // * honor;
@@ -75,10 +71,6 @@ KillRewarder::KillRewarder(Player* killer, Unit* victim, bool isBattleGround) :
     // mark the credit as pvp if victim is player
     if (victim->GetTypeId() == TYPEID_PLAYER)
         _isPvP = true;
-    //npcbot
-    else if (victim->IsNPCBotOrPet())
-        _isPvP = true;
-    //end npcbot
         // or if its owned by player and its not a vehicle
     else if (victim->GetCharmerOrOwnerGUID().IsPlayer())
         _isPvP = !victim->IsVehicle();
@@ -153,7 +145,6 @@ void KillRewarder::_RewardHonor(Player* player)
 void KillRewarder::_RewardXP(Player* player, float rate)
 {
     uint32 xp(_xp);
-
     if (_group)
     {
         // 4.2.1. If player is in group, adjust XP:
@@ -167,24 +158,12 @@ void KillRewarder::_RewardXP(Player* player, float rate)
         else
             xp = 0;
     }
-
     if (xp)
     {
         // 4.2.2. Apply auras modifying rewarded XP (SPELL_AURA_MOD_XP_PCT).
         Unit::AuraEffectList const& auras = player->GetAuraEffectsByType(SPELL_AURA_MOD_XP_PCT);
         for (Unit::AuraEffectList::const_iterator i = auras.begin(); i != auras.end(); ++i)
             AddPct(xp, (*i)->GetAmount());
-
-        //npcbot 4.2.2.1. Apply NpcBot XP reduction
-        uint8 bots_count = player->GetNpcBotsCount();
-        uint8 xp_reduction = BotMgr::GetNpcBotXpReduction();
-        uint8 xp_reduction_start = BotMgr::GetNpcBotXpReductionStartingNumber();
-        if (xp_reduction_start > 0 && xp_reduction > 0 && bots_count >= xp_reduction_start)
-        {
-            uint32 ratePct = std::max<int32>(100 - ((bots_count - (xp_reduction_start - 1)) * xp_reduction), 10);
-            xp = xp * ratePct / 100;
-        }
-        //end npcbot
 
         // 4.2.3. Give XP to player.
         sScriptMgr->OnGivePlayerXP(player, xp, _victim, PlayerXPSource::XPSOURCE_KILL);
@@ -236,7 +215,6 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
             // 4.2. Give XP.
             _RewardXP(player, xpRate);
         }
-
         if (!_isBattleGround)
         {
             // If killer is in dungeon then all members receive full reputation at kill.

@@ -206,16 +206,6 @@ public:
         if (!sObjectMgr->GetCreatureTemplate(id))
             return false;
 
-        //npcbot
-        CreatureTemplate const* cinfo = sObjectMgr->GetCreatureTemplate(id);
-        if (cinfo && cinfo->IsNPCBotOrPet())
-        {
-            handler->PSendSysMessage("You tried to spawn creature %u, which is part of NPCBots mod. To spawn bots use '.npcbot spawn' instead.", uint32(id));
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-        //end npcbot
-
         Player* chr = handler->GetSession()->GetPlayer();
         float x = chr->GetPositionX();
         float y = chr->GetPositionY();
@@ -399,15 +389,6 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-
-        //npcbot
-        if (unit->IsNPCBotOrPet())
-        {
-            handler->SendSysMessage("Selected creature has botAI assigned, use '.npcbot delete' instead");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-        //end npcbot
 
         // Delete the creature
         unit->CombatStop();
@@ -767,17 +748,6 @@ public:
             return false;
         }
 
-        //npcbot
-        CreatureTemplate const* ct = sObjectMgr->GetCreatureTemplate(creature->GetEntry());
-        ASSERT(ct);
-        if (ct->IsNPCBotOrPet())
-        {
-            handler->PSendSysMessage("creature %u (id %u) is a part of NPCBots mod. Use '.npcbot move' instead", lowguid, creature->GetEntry());
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-        //end npcbot
-
         float x = handler->GetSession()->GetPlayer()->GetPositionX();
         float y = handler->GetSession()->GetPlayer()->GetPositionY();
         float z = handler->GetSession()->GetPlayer()->GetPositionZ();
@@ -798,7 +768,7 @@ public:
 
             if (creature->IsAlive())                            // dead creature will reset movement generator at respawn
             {
-                creature->setDeathState(JUST_DIED);
+                creature->setDeathState(DeathState::JustDied);
                 creature->Respawn();
             }
         }
@@ -950,7 +920,7 @@ public:
 
             if (creature->IsAlive())                            // dead creature will reset movement generator at respawn
             {
-                creature->setDeathState(JUST_DIED);
+                creature->setDeathState(DeathState::JustDied);
                 creature->Respawn();
             }
 
@@ -1024,7 +994,7 @@ public:
 
         if (creature->IsAlive())                                // dead creature will reset movement generator at respawn
         {
-            creature->setDeathState(JUST_DIED);
+            creature->setDeathState(DeathState::JustDied);
             creature->Respawn();
         }
 

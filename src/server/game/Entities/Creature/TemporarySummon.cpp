@@ -24,10 +24,6 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 
-//npcbot
-#include "botmgr.h"
-//end npcbot
-
 TempSummon::TempSummon(SummonPropertiesEntry const* properties, ObjectGuid owner, bool isWorldObject) :
     Creature(isWorldObject), m_Properties(properties), m_type(TEMPSUMMON_MANUAL_DESPAWN),
     m_timer(0), m_lifetime(0), _visibleBySummonerOnly(false)
@@ -71,7 +67,7 @@ void TempSummon::Update(uint32 diff)
 {
     Creature::Update(diff);
 
-    if (m_deathState == DEAD)
+    if (m_deathState == DeathState::Dead)
     {
         UnSummon();
         return;
@@ -111,7 +107,7 @@ void TempSummon::Update(uint32 diff)
             }
         case TEMPSUMMON_TIMED_DESPAWN_OOC_ALIVE:
             {
-                if (!IsInCombat() && m_deathState != CORPSE)
+                if (!IsInCombat() && m_deathState != DeathState::Corpse)
                 {
                     if (m_timer <= diff)
                     {
@@ -128,7 +124,7 @@ void TempSummon::Update(uint32 diff)
             }
         case TEMPSUMMON_CORPSE_TIMED_DESPAWN:
             {
-                if (m_deathState == CORPSE)
+                if (m_deathState == DeathState::Corpse)
                 {
                     if (m_timer <= diff)
                     {
@@ -143,7 +139,7 @@ void TempSummon::Update(uint32 diff)
         case TEMPSUMMON_CORPSE_DESPAWN:
             {
                 // if m_deathState is DEAD, CORPSE was skipped
-                if (m_deathState == CORPSE)
+                if (m_deathState == DeathState::Corpse)
                 {
                     UnSummon();
                     return;
@@ -158,7 +154,7 @@ void TempSummon::Update(uint32 diff)
         case TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN:
             {
                 // if m_deathState is DEAD, CORPSE was skipped
-                if (m_deathState == CORPSE)
+                if (m_deathState == DeathState::Corpse)
                 {
                     UnSummon();
                     return;
@@ -233,12 +229,6 @@ void TempSummon::InitStats(uint32 duration)
     if (!m_Properties)
         return;
 
-    //npcbot: skip deleting/reassigning player totems
-    //normally no creatorGUID is assigned at this point, perform full check anyway for compatibilty reasons
-    if (!(m_Properties->Slot && m_Properties->Slot >= SUMMON_SLOT_TOTEM_FIRE && m_Properties->Slot < MAX_TOTEM_SLOT &&
-        GetCreatorGUID() && GetCreatorGUID().IsCreature() && owner && owner->GetTypeId() == TYPEID_PLAYER &&
-        owner->ToPlayer()->HaveBot() && owner->ToPlayer()->GetBotMgr()->GetBot(GetCreatorGUID())))
-    //end npcbot
     if (owner)
     {
         if (uint32 slot = m_Properties->Slot)
@@ -373,15 +363,6 @@ void Minion::InitStats(uint32 duration)
 
     SetReactState(REACT_PASSIVE);
 
-    //npcbot
-    //do not add bot totem to player's controlled list
-    //client indicator will be OwnerGUID
-    if (m_Properties && m_Properties->Slot && m_Properties->Slot >= SUMMON_SLOT_TOTEM_FIRE && m_Properties->Slot < MAX_TOTEM_SLOT &&
-        GetCreatorGUID() && GetCreatorGUID().IsCreature() && GetOwner() && GetOwner()->GetTypeId() == TYPEID_PLAYER &&
-        GetOwner()->ToPlayer()->HaveBot() && GetOwner()->ToPlayer()->GetBotMgr()->GetBot(GetCreatorGUID()))
-        return;
-    //end npcbot
-
     if (Unit* owner = GetOwner())
     {
         SetCreatorGUID(owner->GetGUID());
@@ -414,7 +395,7 @@ bool Minion::IsGuardianPet() const
 void Minion::setDeathState(DeathState s, bool despawn)
 {
     Creature::setDeathState(s, despawn);
-    if (s == JUST_DIED && IsGuardianPet())
+    if (s == DeathState::JustDied && IsGuardianPet())
         if (Unit* owner = GetOwner())
             if (owner->GetTypeId() == TYPEID_PLAYER && owner->GetMinionGUID() == GetGUID())
                 for (Unit::ControlSet::const_iterator itr = owner->m_Controlled.begin(); itr != owner->m_Controlled.end(); ++itr)

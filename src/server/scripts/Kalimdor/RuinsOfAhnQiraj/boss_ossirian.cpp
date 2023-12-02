@@ -23,8 +23,8 @@
 #include "ScriptedCreature.h"
 #include "SpellInfo.h"
 #include "SpellScript.h"
-#include "ruins_of_ahnqiraj.h"
 #include "TaskScheduler.h"
+#include "ruins_of_ahnqiraj.h"
 
 enum Texts
 {
@@ -44,6 +44,7 @@ enum Spells
     SPELL_SAND_STORM                    = 25160,
     SPELL_SUMMON_CRYSTAL                = 25192,
     SPELL_SUMMON_SMALL_OBSIDIAN_CHUNK   = 27627, // Server-side
+    SPELL_SPEED_BURST                   = 25184, // Server-side
 
     // Crystal
     SPELL_FIRE_WEAKNESS                 = 25177,
@@ -64,6 +65,7 @@ enum Events
     EVENT_SILENCE               = 1,
     EVENT_CYCLONE               = 2,
     EVENT_STOMP                 = 3,
+    EVENT_SPEEDUP               = 4
 };
 
 enum Misc
@@ -163,6 +165,7 @@ struct boss_ossirian : public BossAI
     {
         BossAI::JustEngagedWith(who);
         events.Reset();
+        events.ScheduleEvent(EVENT_SPEEDUP, 10s);
         events.ScheduleEvent(EVENT_SILENCE, 30s);
         events.ScheduleEvent(EVENT_CYCLONE, 20s);
         events.ScheduleEvent(EVENT_STOMP, 30s);
@@ -276,6 +279,9 @@ struct boss_ossirian : public BossAI
         {
             switch (eventId)
             {
+                case EVENT_SPEEDUP:
+                    DoCastSelf(SPELL_SPEED_BURST);
+                    break;
                 case EVENT_SILENCE:
                     DoCastAOE(SPELL_CURSE_OF_TONGUES);
                     events.ScheduleEvent(EVENT_SILENCE, 20s, 30s);

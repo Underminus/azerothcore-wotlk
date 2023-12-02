@@ -158,37 +158,6 @@ public:
             {
                 damage = 0;
             }
-
-            if (me->HealthBelowPctDamaged(50, damage))
-            {
-                if (_hasSubmergedOnce)
-                {
-                    return;
-                }
-
-                events.CancelEventGroup(PHASE_EMERGED);
-                events.SetPhase(PHASE_SUBMERGED);
-                extraEvents.SetPhase(PHASE_SUBMERGED);
-                me->SetReactState(REACT_PASSIVE);
-                me->InterruptNonMeleeSpells(false);
-                me->AttackStop();
-                DoResetThreatList();
-                me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_SUBMERGED);
-                DoCastSelf(SPELL_RAGNA_SUBMERGE_VISUAL, true);
-                //me->HandleEmoteCommand(EMOTE_ONESHOT_SUBMERGE);
-
-                Talk(_hasSubmergedOnce ? SAY_REINFORCEMENTS2 : SAY_REINFORCEMENTS1);
-
-                DoCastAOE(SPELL_SUMMON_SONS_FLAME);
-
-                if (!_hasSubmergedOnce)
-                {
-                    _hasSubmergedOnce = true;
-                }
-
-                extraEvents.ScheduleEvent(EVENT_EMERGE, 90000, PHASE_SUBMERGED, PHASE_SUBMERGED);
-            }
         }
 
         void DoAction(int32 action) override

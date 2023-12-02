@@ -190,14 +190,6 @@ hyjal_trashAI::hyjal_trashAI(Creature* creature) : npc_escortAI(creature)
 
 void hyjal_trashAI::DamageTaken(Unit* done_by, uint32& damage, DamageEffectType, SpellSchoolMask)
 {
-    //npcbot:
-    if (done_by && done_by->IsNPCBotOrPet())
-    {
-        damageTaken += damage;
-        instance->SetData(DATA_RAIDDAMAGE, damage);
-    }
-    else
-    //end npcbot
     if (done_by && (done_by->GetTypeId() == TYPEID_PLAYER || done_by->IsPet()))
     {
         damageTaken += damage;
@@ -592,7 +584,7 @@ public:
             {
                 if ((faction == 0 && LastOverronPos == 17) || (faction == 1 && LastOverronPos == 21))
                 {
-                    me->setDeathState(DEAD);
+                    me->setDeathState(DeathState::Dead);
                     me->RemoveCorpse();
                 }
             }
@@ -693,7 +685,7 @@ public:
                 me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_ATTACK_UNARMED);
                 if ((faction == 0 && LastOverronPos == 17) || (faction == 1 && LastOverronPos == 21))
                 {
-                    me->setDeathState(DEAD);
+                    me->setDeathState(DeathState::Dead);
                     me->RemoveCorpse();
                 }
             }

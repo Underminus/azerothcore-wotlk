@@ -94,8 +94,6 @@ namespace Acore::ChatCommands
 
 #define VISIBLE_RANGE       166.0f                          //MAX visible range (size of grid)
 
-#define MOD_PRESENT_NPCBOTS 1
-
 // Check out our guide on how to create new hooks in our wiki! https://www.azerothcore.org/wiki/hooks-script
 /*
     TODO: Add more script type classes.
@@ -421,15 +419,11 @@ public:
     virtual void OnHeal(Unit* /*healer*/, Unit* /*reciever*/, uint32& /*gain*/) { }
 
     // Called when a unit deals damage to another unit
-    virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/, DamageEffectType /*damagetype*/) { }
+    virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/) { }
 
     // Called when DoT's Tick Damage is being Dealt
     // Attacker can be nullptr if he is despawned while the aura still exists on target
     virtual void ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* /*attacker*/, uint32& /*damage*/, SpellInfo const* /*spellInfo*/) { }
-
-    // Called when HoT's Tick Heal is Received
-    // Healer can be nullptr if he is despawned while the aura still exists on target
-    virtual void ModifyPeriodicHealAurasTick(Unit* /*target*/, Unit* /*healer*/, uint32& /*heal*/, SpellInfo const* /*spellInfo*/) { }
 
     // Called when Melee Damage is being Dealt
     virtual void ModifyMeleeDamage(Unit* /*target*/, Unit* /*attacker*/, uint32& /*damage*/) { }
@@ -437,7 +431,7 @@ public:
     // Called when Spell Damage is being Dealt
     virtual void ModifySpellDamageTaken(Unit* /*target*/, Unit* /*attacker*/, int32& /*damage*/, SpellInfo const* /*spellInfo*/) { }
 
-    // Called when Heal is Received
+    // Called when Heal is Recieved
     virtual void ModifyHealReceived(Unit* /*target*/, Unit* /*healer*/, uint32& /*heal*/, SpellInfo const* /*spellInfo*/) { }
 
     //Called when Damage is Dealt
@@ -1038,6 +1032,9 @@ public:
 
     // Called when a player's talent points are reset (right before the reset is done)
     virtual void OnTalentsReset(Player* /*player*/, bool /*noCost*/) { }
+
+    // Called after a player switches specs using the dual spec system
+    virtual void OnAfterSpecSlotChanged(Player* /*player*/, uint8 /*newSlot*/) { }
 
     // Called for player::update
     virtual void OnBeforeUpdate(Player* /*player*/, uint32 /*p_time*/) { }
@@ -1917,7 +1914,7 @@ public:
 
     [[nodiscard]] virtual bool CanUnlearnSpellSet(Pet* /*pet*/, uint32 /*level*/, uint32 /*spell*/) { return true; }
 
-    [[nodiscard]] virtual bool CanUnlearnSpellDefault(Pet* /*pet*/, SpellInfo const* /*spellEntry*/) { return true; }
+    [[nodiscard]] virtual bool CanUnlearnSpellDefault(Pet* /*pet*/, SpellInfo const* /*spellInfo*/) { return true; }
 
     [[nodiscard]] virtual bool CanResetTalents(Pet* /*pet*/) { return true; }
 
@@ -2030,7 +2027,20 @@ public:
 
     [[nodiscard]] bool IsDatabaseBound() const override { return false; }
 
+    /**
+     * @brief Called after all databases are loaded
+     *
+     * @param updateFlags Update flags from the loader
+     */
     virtual void OnAfterDatabasesLoaded(uint32 /*updateFlags*/) { }
+
+    /**
+     * @brief Called after all creature template data has been loaded from the database. This hook could be called multiple times, not just at server startup.
+     *
+     * @param creatureTemplates Pointer to a modifiable vector of creature templates. Indexed by Entry ID.
+     */
+    virtual void OnAfterDatabaseLoadCreatureTemplates(std::vector<CreatureTemplate*> /*creatureTemplates*/) { }
+
 };
 
 class WorldObjectScript : public ScriptObject
@@ -2318,6 +2328,7 @@ public: /* PlayerScript */
     void OnPlayerLevelChanged(Player* player, uint8 oldLevel);
     void OnPlayerFreeTalentPointsChanged(Player* player, uint32 newPoints);
     void OnPlayerTalentsReset(Player* player, bool noCost);
+    void OnAfterSpecSlotChanged(Player* player, uint8 newSlot);
     void OnPlayerMoneyChanged(Player* player, int32& amount);
     void OnBeforeLootMoney(Player* player, Loot* loot);
     void OnGivePlayerXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource);
@@ -2538,9 +2549,8 @@ public: /* Scheduled scripts */
 
 public: /* UnitScript */
     void OnHeal(Unit* healer, Unit* reciever, uint32& gain);
-    void OnDamage(Unit* attacker, Unit* victim, uint32& damage, DamageEffectType damagetype);
+    void OnDamage(Unit* attacker, Unit* victim, uint32& damage);
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* spellInfo);
-    void ModifyPeriodicHealAurasTick(Unit* target, Unit* attacker, uint32& addHealth, SpellInfo const* spellInfo);
     void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& damage);
     void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage, SpellInfo const* spellInfo);
     void ModifyHealReceived(Unit* target, Unit* healer, uint32& addHealth, SpellInfo const* spellInfo);
@@ -2640,7 +2650,7 @@ public: /* PetScript */
     void OnInitStatsForLevel(Guardian* guardian, uint8 petlevel);
     void OnCalculateMaxTalentPointsForLevel(Pet* pet, uint8 level, uint8& points);
     bool CanUnlearnSpellSet(Pet* pet, uint32 level, uint32 spell);
-    bool CanUnlearnSpellDefault(Pet* pet, SpellInfo const* spellEntry);
+    bool CanUnlearnSpellDefault(Pet* pet, SpellInfo const* spellInfo);
     bool CanResetTalents(Pet* pet);
 
 public: /* ArenaScript */
@@ -2678,6 +2688,7 @@ public: /* CommandSC */
 public: /* DatabaseScript */
 
     void OnAfterDatabasesLoaded(uint32 updateFlags);
+    void OnAfterDatabaseLoadCreatureTemplates(std::vector<CreatureTemplate*> creatureTemplateStore);
 
 public: /* WorldObjectScript */
 

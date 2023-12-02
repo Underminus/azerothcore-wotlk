@@ -23,9 +23,9 @@
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "SpellScript.h"
+#include "TaskScheduler.h"
 #include "TemporarySummon.h"
 #include "blackwing_lair.h"
-#include "TaskScheduler.h"
 
 enum Events
 {
@@ -465,7 +465,7 @@ public:
                             events.ScheduleEvent(EVENT_SILENCE, 14s,23s);
                             break;
                         case EVENT_MIND_CONTROL:
-                            DoCastRandomTarget(SPELL_SHADOW_COMMAND, 1, 40.0f);
+                            DoCastRandomTarget(SPELL_SHADOW_COMMAND, 0, 40.0f);
                             events.ScheduleEvent(EVENT_MIND_CONTROL, 24s, 30s);
                             break;
                         case EVENT_SHADOWBLINK:

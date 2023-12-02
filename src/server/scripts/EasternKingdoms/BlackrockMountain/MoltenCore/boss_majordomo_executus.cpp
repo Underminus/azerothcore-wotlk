@@ -508,7 +508,6 @@ public:
             if (events.IsInPhase(PHASE_DEFEAT_OUTRO) && spellInfo->Id == SPELL_TELEPORT_SELF)
             {
                 me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                me->SetFaction(FACTION_MAJORDOMO_FRIENDLY);
                 me->SetHomePosition(MajordomoRagnaros);
                 me->NearTeleportTo(MajordomoRagnaros.GetPositionX(), MajordomoRagnaros.GetPositionY(), MajordomoRagnaros.GetPositionZ(), MajordomoRagnaros.GetOrientation());
                 events.SetPhase(PHASE_NONE);

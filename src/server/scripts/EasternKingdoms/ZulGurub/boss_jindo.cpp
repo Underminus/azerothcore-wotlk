@@ -132,7 +132,7 @@ struct boss_jindo : public BossAI
                 events.ScheduleEvent(EVENT_POWERFULL_HEALING_WARD, 14s, 20s);
                 break;
             case EVENT_HEX:
-                if (me->GetThreatMgr().GetThreatListSize() > 2)
+                if (me->GetThreatMgr().GetThreatListSize() > 1)
                     DoCastVictim(SPELL_HEX, true);
                 events.ScheduleEvent(EVENT_HEX, 12s, 20s);
                 break;

@@ -200,6 +200,10 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
             return;
         }
     }
+    else if (!(groupAI & std::underlying_type_t<GroupAIFlags>(GroupAIFlags::GROUP_AI_FLAG_LEADER_ASSIST_MEMBER)))
+    {
+        return;
+    }
 
     for (auto const& itr : m_members)
     {

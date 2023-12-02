@@ -495,11 +495,8 @@ public:
         {
             // If the victim of the spell does not have "Onyxia Scale Cloak" - add the Shadow Flame DoT (22682)
             if (Unit* victim = GetHitUnit())
-            {
-                bool isPet = (victim->IsHunterPet() || victim->IsPet() || victim->IsSummon() || victim->IsTotem()) && victim->IsControlledByPlayer();
-                if (!victim->HasAura(SPELL_ONYXIA_SCALE_CLOAK) && !isPet)
+                if (!victim->HasAura(SPELL_ONYXIA_SCALE_CLOAK))
                     victim->AddAura(SPELL_SHADOW_FLAME_DOT, victim);
-            }
         }
 
         void Register() override

@@ -19,7 +19,6 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "SpellScript.h"
-#include "TaskScheduler.h"
 #include "temple_of_ahnqiraj.h"
 
 enum Spells
@@ -69,16 +68,15 @@ enum Emotes
     EMOTE_EXPLODE               = 5
 };
 
-// Adjust for 5 mans (1/8th of original amount)
 enum HitCounter
 {
-    HITCOUNTER_SLOW             = 13,
-    HITCOUNTER_SLOW_MORE        = 19,
-    HITCOUNTER_FREEZE           = 25,
+    HITCOUNTER_SLOW             = 100,
+    HITCOUNTER_SLOW_MORE        = 150,
+    HITCOUNTER_FREEZE           = 200,
 
-    HITCOUNTER_CRACK            = 6,
-    HITCOUNTER_SHATTER          = 13,
-    HITCOUNTER_EXPLODE          = 19,
+    HITCOUNTER_CRACK            = 50,
+    HITCOUNTER_SHATTER          = 100,
+    HITCOUNTER_EXPLODE          = 150,
 };
 
 enum MovePoints
@@ -119,9 +117,7 @@ struct boss_viscidus : public BossAI
     void Reset() override
     {
         BossAI::Reset();
-        events.Reset();
         SoftReset();
-        _scheduler.CancelAll();
         me->RemoveAurasDueToSpell(SPELL_VISCIDUS_SHRINKS);
     }
 
@@ -132,17 +128,6 @@ struct boss_viscidus : public BossAI
         me->SetReactState(REACT_AGGRESSIVE);
         _phase = PHASE_FROST;
         me->RemoveAurasDueToSpell(SPELL_INVIS_SELF);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        events.Reset();
-        summons.DespawnAll(10 * IN_MILLISECONDS);
-        if (instance)
-        {
-            instance->SetBossState(DATA_VISCIDUS, DONE);
-            instance->SaveToDB();
-        }
     }
 
     void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType effType, SpellSchoolMask spellSchoolMask) override
@@ -185,8 +170,7 @@ struct boss_viscidus : public BossAI
             me->AttackStop();
             me->CastStop();
             me->HandleEmoteCommand(EMOTE_ONESHOT_FLYDEATH); // not found in sniff, this is the best one I found
-            _scheduler
-                .Schedule(2500ms, [this](TaskContext /*context*/)
+            scheduler.Schedule(2500ms, [this](TaskContext /*context*/)
                 {
                     DoCastSelf(SPELL_EXPLODE_TRIGGER, true);
                 })
@@ -219,14 +203,6 @@ struct boss_viscidus : public BossAI
         SpellSchoolMask spellSchoolMask = spellInfo->GetSchoolMask();
         if (spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON && spellInfo->EquippedItemSubClassMask & (1 << ITEM_SUBCLASS_WEAPON_WAND))
         {
-            //npcbot: get bot's wand
-            if (caster->GetTypeId() == TYPEID_UNIT)
-            {
-                if (Item const* pItem = caster->ToCreature()->GetBotEquips(2/*BOT_SLOT_RANGED*/))
-                    spellSchoolMask = SpellSchoolMask(uint32(spellSchoolMask) | (1ul << pItem->GetTemplate()->Damage[0].DamageType));
-            }
-            else
-            //end npcbot
             if (Item* pItem = caster->ToPlayer()->GetWeaponForAttack(RANGED_ATTACK))
             {
                 spellSchoolMask = SpellSchoolMask(1 << pItem->GetTemplate()->Damage[0].DamageType);
@@ -304,7 +280,7 @@ struct boss_viscidus : public BossAI
             return;
 
         events.Update(diff);
-        _scheduler.Update(diff);
+        scheduler.Update(diff);
 
         while (uint32 eventId = events.ExecuteEvent())
         {
@@ -339,7 +315,6 @@ struct boss_viscidus : public BossAI
 private:
     uint8 _hitcounter;
     uint8 _phase;
-    TaskScheduler _scheduler;
 };
 
 struct boss_glob_of_viscidus : public ScriptedAI
@@ -352,8 +327,8 @@ struct boss_glob_of_viscidus : public ScriptedAI
     void InitializeAI() override
     {
         me->SetInCombatWithZone();
-        _scheduler.CancelAll();
-        _scheduler.Schedule(2400ms, [this](TaskContext context)
+        scheduler.CancelAll();
+        scheduler.Schedule(2400ms, [this](TaskContext context)
             {
                 me->GetMotionMaster()->MovePoint(ROOM_CENTER, roomCenter);
                 float topSpeed = me->GetSpeedRate(MOVE_RUN) + 0.2142855f * 4;
@@ -377,11 +352,8 @@ struct boss_glob_of_viscidus : public ScriptedAI
 
     void UpdateAI(uint32 diff) override
     {
-        _scheduler.Update(diff);
+        scheduler.Update(diff);
     }
-
-protected:
-    TaskScheduler _scheduler;
 };
 
 struct npc_toxic_slime : public ScriptedAI

@@ -56,15 +56,14 @@ enum Misc
     ACTION_SWARMER_SWARM                    = 1,
 };
 
+enum TaskGroups
+{
+    GROUP_AIR                              = 1
+};
+
 enum Emotes
 {
     EMOTE_FRENZY                            =  0
-};
-
-enum Phases
-{
-    PHASE_AIR                               = 0,
-    PHASE_GROUND                            = 1
 };
 
 enum Points
@@ -79,27 +78,28 @@ const Position AltarPos       = { -9717.18f, 1517.72f, 27.4677f, 0.0f };
 
 struct boss_ayamiss : public BossAI
 {
-    boss_ayamiss(Creature* creature) : BossAI(creature, DATA_AYAMISS)
-    {
-        homePos = creature->GetHomePosition();
-        Initialize();
-    }
-        
-    void Initialize()
-    {
-        airPhaseTimer = 120000;
-    }
-
+    boss_ayamiss(Creature* creature) : BossAI(creature, DATA_AYAMISS) { homePos = creature->GetHomePosition(); }
 
     void Reset() override
     {
-        Initialize();
         BossAI::Reset();
-        _phase = PHASE_AIR;
-        _enraged = false;
         SetCombatMovement(false);
-        scheduler.CancelAll();
         me->SetReactState(REACT_AGGRESSIVE);
+
+        ScheduleHealthCheckEvent(70, [&] {
+            me->ClearUnitState(UNIT_STATE_ROOT);
+            me->SetReactState(REACT_PASSIVE);
+            me->SetCanFly(false);
+            me->SetDisableGravity(false);
+            me->GetMotionMaster()->MovePath(me->GetEntry() * 10, false);
+            DoResetThreatList();
+            scheduler.CancelGroup(GROUP_AIR);
+        });
+
+        ScheduleHealthCheckEvent(20, [&] {
+            DoCastSelf(SPELL_FRENZY);
+            Talk(EMOTE_FRENZY);
+        });
     }
 
     void JustSummoned(Creature* who) override
@@ -156,9 +156,8 @@ struct boss_ayamiss : public BossAI
         {
             DoCastSelf(SPELL_STINGER_SPRAY);
             context.Repeat(15s, 20s);
-        }).Schedule(5s, [this](TaskContext context) {
+        }).Schedule(5s, GROUP_AIR, [this](TaskContext context) {
             DoCastVictim(SPELL_POISON_STINGER);
-            context.SetGroup(PHASE_AIR);
             context.Repeat(2s, 3s);
         }).Schedule(5s, [this](TaskContext context) {
             DoCastAOE(SPELL_SUMMON_HIVEZARA_SWARMER, true);
@@ -172,7 +171,7 @@ struct boss_ayamiss : public BossAI
         }).Schedule(15s, 28s, [this](TaskContext context) {
             if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0, true))
             {
-                DoCastRandomTarget(SPELL_PARALYZE, 1, true);
+                DoCast(target, SPELL_PARALYZE, true);
                 instance->SetGuidData(DATA_PARALYZED, target->GetGUID());
                 DoCastAOE(RAND(SPELL_SUMMON_LARVA_A, SPELL_SUMMON_LARVA_B), true);
             }
@@ -221,45 +220,9 @@ struct boss_ayamiss : public BossAI
         ScheduleTasks();
     }
 
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType, SpellSchoolMask) override
-    {
-        if ((me->HealthBelowPctDamaged(70, damage) || airPhaseTimer <= 0) && _phase == PHASE_AIR)
-        {
-            _phase = PHASE_GROUND;
-            me->ClearUnitState(UNIT_STATE_ROOT);
-            me->SetReactState(REACT_PASSIVE);
-            me->SetCanFly(false);
-            me->SetDisableGravity(false);
-            me->GetMotionMaster()->MovePath(me->GetEntry() * 10, false);
-            DoResetThreatList();
-            scheduler.CancelGroup(PHASE_AIR);
-        }
-
-        if (!_enraged && me->HealthBelowPctDamaged(20, damage))
-        {
-            DoCastSelf(SPELL_FRENZY);
-            Talk(EMOTE_FRENZY);
-            _enraged = true;
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        scheduler.Update(diff,
-            std::bind(&BossAI::DoMeleeAttackIfReady, this));
-
-        if (_phase == PHASE_AIR)
-            airPhaseTimer -= diff;
-    }
 private:
     GuidList _swarmers;
-    uint8 _phase;
-    bool _enraged;
     Position homePos;
-    int32 airPhaseTimer;
 };
 
 struct npc_hive_zara_larva : public ScriptedAI

@@ -89,12 +89,7 @@ public:
                         events.ScheduleEvent(EVENT_WINGBUFFET, 30s);
                         break;
                     case EVENT_SHADOWOFEBONROC:
-                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 30.0f, true))
-                        {
-                            DoCast(target, SPELL_SHADOWOFEBONROC, false);
-                            me->TauntApply(target);
-                        }
-
+                        DoCastVictim(SPELL_SHADOWOFEBONROC);
                         events.ScheduleEvent(EVENT_SHADOWOFEBONROC, 8s, 10s);
                         break;
                 }

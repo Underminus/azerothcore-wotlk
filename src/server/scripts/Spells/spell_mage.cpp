@@ -908,7 +908,7 @@ const uint32 spell_mage_polymorph_cast_visual::spell_mage_polymorph_cast_visual:
 class spell_mage_summon_water_elemental : public SpellScript
 {
     PrepareSpellScript(spell_mage_summon_water_elemental)
-    bool Validate(SpellInfo const* /*spellEntry*/) override
+    bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
             {
@@ -922,28 +922,25 @@ class spell_mage_summon_water_elemental : public SpellScript
     {
         Unit* caster = GetCaster();
 
-        //npcbot: prevent default handler for bots
-        if (caster->IsNPCBot())
-            return;
-        //end npcbot
-
         if (Creature* pet = ObjectAccessor::GetCreature(*caster, caster->GetPetGUID()))
             if (!pet->IsAlive())
                 pet->ToTempSummon()->UnSummon();
 
-        caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT, true);
+        // Glyph of Eternal Water
+        if (caster->HasAura(SPELL_MAGE_GLYPH_OF_ETERNAL_WATER))
+            caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT, true);
+        else
+            caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY, true);
 
         if (Creature* pet = ObjectAccessor::GetCreature(*caster, caster->GetPetGUID()))
-        {
             if (pet->GetCharmInfo() && caster->ToPlayer())
             {
                 pet->m_CreatureSpellCooldowns.clear();
-                SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(31707);
-                pet->GetCharmInfo()->ToggleCreatureAutocast(spellEntry, true);
-                pet->GetCharmInfo()->SetSpellAutocast(spellEntry, true);
+                SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(31707);
+                pet->GetCharmInfo()->ToggleCreatureAutocast(spellInfo, true);
+                pet->GetCharmInfo()->SetSpellAutocast(spellInfo, true);
                 caster->ToPlayer()->CharmSpellInitialize();
             }
-        }
     }
 
     void Register() override
