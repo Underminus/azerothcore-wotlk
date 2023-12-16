@@ -35,7 +35,6 @@
 #include "GroupMgr.h"
 #include "GuildMgr.h"
 #include "LFGMgr.h"
-#include "Language.h"
 #include "Log.h"
 #include "MapMgr.h"
 #include "Pet.h"
@@ -45,6 +44,7 @@
 #include "Spell.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "SpellScriptLoader.h"
 #include "StringConvert.h"
 #include "Tokenize.h"
 #include "Transport.h"
@@ -4939,6 +4939,25 @@ void ObjectMgr::LoadQuests()
                 LOG_ERROR("sql.sql", "Quest {} has `RewardChoiceItemId{}` = 0 but `RewardChoiceItemCount{}` = {}.",
                                  qinfo->GetQuestId(), j + 1, j + 1, qinfo->RewardChoiceItemCount[j]);
                 // no changes, quest ignore this data
+            }
+        }
+
+        for (uint8 j = 0; j < QUEST_REWARDS_COUNT; ++j)
+        {
+            if (!qinfo->RewardItemId[0] && qinfo->RewardItemId[j])
+            {
+                LOG_ERROR("sql.sql", "Quest {} has no `RewardItemId1` but has `RewardItem{}`. Reward item will not be loaded.",
+                                    qinfo->GetQuestId(), j + 1);
+            }
+            if (!qinfo->RewardItemId[1] && j > 1 && qinfo->RewardItemId[j])
+            {
+                LOG_ERROR("sql.sql", "Quest {} has no `RewardItemId2` but has `RewardItem{}`. Reward item will not be loaded.",
+                                    qinfo->GetQuestId(), j + 1);
+            }
+            if (!qinfo->RewardItemId[2] && j > 2 && qinfo->RewardItemId[j])
+            {
+                LOG_ERROR("sql.sql", "Quest {} has no `RewardItemId3` but has `RewardItem{}`. Reward item will not be loaded.",
+                                    qinfo->GetQuestId(), j + 1);
             }
         }
 
