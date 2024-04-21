@@ -18,6 +18,7 @@
 #define PRESETS // comment this line to disable preset feature totally
 #define HIDDEN_ITEM_ID 1 // used for hidden transmog - do not use a valid equipment ID
 #define MAX_OPTIONS 25 // do not alter
+#define MAX_SEARCH_STRING_LENGTH 50
 
 class Item;
 class Player;
@@ -28,6 +29,13 @@ enum TransmogSettings
 {
     SETTING_HIDE_TRANSMOG = 0,
     SETTING_RETROACTIVE_CHECK = 1
+};
+
+enum MixedWeaponSettings
+{
+    MIXED_WEAPONS_STRICT = 0,
+    MIXED_WEAPONS_MODERN = 1,
+    MIXED_WEAPONS_LOOSE  = 2
 };
 
 enum TransmogAcoreStrings // Language.h might have same entries, appears when executing SQL, change if needed
@@ -51,6 +59,8 @@ enum TransmogAcoreStrings // Language.h might have same entries, appears when ex
     LANG_CMD_TRANSMOG_HIDE = 11112,
     LANG_CMD_TRANSMOG_ADD_UNSUITABLE = 11113,
     LANG_CMD_TRANSMOG_ADD_FORBIDDEN = 11114,
+    LANG_CMD_TRANSMOG_BEGIN_SYNC = 11115,
+    LANG_CMD_TRANSMOG_COMPLETE_SYNC = 11116,
 };
 
 class Transmogrification
@@ -62,6 +72,7 @@ public:
     typedef std::unordered_map<ObjectGuid, uint32> transmog2Data;
     typedef std::unordered_map<ObjectGuid, transmog2Data> transmogMap;
     typedef std::unordered_map<uint32, std::vector<uint32>> collectionCacheMap;
+    typedef std::unordered_map<uint32, std::string> searchStringMap;
     transmogMap entryMap; // entryMap[pGUID][iGUID] = entry
     transmogData dataMap; // dataMap[iGUID] = pGUID
     collectionCacheMap collectionCache;
@@ -77,6 +88,7 @@ public:
     typedef std::map<uint8, std::string> presetIdMap;
     typedef std::unordered_map<ObjectGuid, presetIdMap> presetNameMap;
     presetNameMap presetByName; // presetByName[pGUID][presetID] = presetName
+    searchStringMap searchStringByPlayer;
 
     void PresetTransmog(Player* player, Item* itemTransmogrified, uint32 fakeEntry, uint8 slot);
 
@@ -84,6 +96,8 @@ public:
     uint8 MaxSets;
     float SetCostModifier;
     int32 SetCopperCost;
+
+    uint32 PetSpellId;
 
     bool GetEnableSets() const;
     uint8 GetMaxSets() const;
@@ -120,8 +134,10 @@ public:
     bool AllowTradeable;
 
     bool AllowMixedArmorTypes;
-    bool AllowMixedWeaponTypes;
+    bool AllowMixedWeaponHandedness;
     bool AllowFishingPoles;
+
+    uint8 AllowMixedWeaponTypes;
 
     bool IgnoreReqRace;
     bool IgnoreReqClass;
@@ -138,11 +154,13 @@ public:
     bool ResetRetroActiveAppearances;
 
     bool IsTransmogEnabled;
+    bool IsPortableNPCEnabled;
 
     bool IsAllowed(uint32 entry) const;
     bool IsNotAllowed(uint32 entry) const;
-    bool IsAllowedQuality(uint32 quality) const;
+    bool IsAllowedQuality(uint32 quality, ObjectGuid const & playerGuid) const;
     bool IsRangedWeapon(uint32 Class, uint32 SubClass) const;
+    bool CanNeverTransmog(ItemTemplate const* itemTemplate);
 
     void LoadConfig(bool reload); // thread unsafe
 
@@ -163,7 +181,7 @@ public:
     bool CanTransmogrifyItemWithItem(Player* player, ItemTemplate const* destination, ItemTemplate const* source) const;
     bool SuitableForTransmogrification(Player* player, ItemTemplate const* proto) const;
     bool SuitableForTransmogrification(ObjectGuid guid, ItemTemplate const* proto) const;
-    bool IsItemTransmogrifiable(ItemTemplate const* proto) const;
+    bool IsItemTransmogrifiable(ItemTemplate const* proto, ObjectGuid const &playerGuid) const;
     uint32 GetSpecialPrice(ItemTemplate const* proto) const;
 
     void DeleteFakeFromDB(ObjectGuid::LowType itemLowGuid, CharacterDatabaseTransaction* trans = nullptr);
@@ -175,7 +193,7 @@ public:
     uint32 GetTokenAmount() const;
 
     bool GetAllowMixedArmorTypes() const;
-    bool GetAllowMixedWeaponTypes() const;
+    uint8 GetAllowMixedWeaponTypes() const;
 
     // Config
     bool GetEnableTransmogInfo() const;
@@ -190,6 +208,17 @@ public:
     bool EnableRetroActiveAppearances() const;
     bool EnableResetRetroActiveAppearances() const;
     [[nodiscard]] bool IsEnabled() const;
+
+    // Transmog Plus
+    bool IsTransmogPlusEnabled;
+    std::vector<uint32> MembershipIds;
+    std::vector<uint32> MembershipIdsLegendary;
+    std::vector<uint32> MembershipIdsPet;
+
+    uint32 getPlayerMembershipLevel(ObjectGuid const & playerGuid) const;
+    bool isPlusWhiteGreyEligible(ObjectGuid const & playerGuid) const;
+    bool isPlusLegendaryEligible(ObjectGuid const & playerGuid) const;
+    bool isTransmogPlusPetEligible(ObjectGuid const & playerGuid) const;
 };
 #define sTransmogrification Transmogrification::instance()
 

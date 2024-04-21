@@ -1,32 +1,26 @@
 #!/usr/bin/env bash
 
-## CUSTOM SQL - Important file used by the db_assembler.sh
-## Keep only the required variables (base sql files or updates, depending on the DB)
-
-## BASE SQL
-
-DB_AUTH_CUSTOM_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/auth/base/"
-)
+#
+# CUSTOM
+#
 
 DB_CHARACTERS_CUSTOM_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/characters/base/"
+	$TRANSM_PATH_ROOT"/data/sql/db-characters/"
 )
 
 DB_WORLD_CUSTOM_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/world/base/"
+	$TRANSM_PATH_ROOT"/data/sql/db-world/"
 )
 
-## UPDATES
+#
+# UPDATES
+#
 
-DB_AUTH_UPDATES_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/auth/updates/"
+DB_CHARACTERS_UPDATE_PATHS+=(
+	$TRANSM_PATH_ROOT"/data/sql/updates/char/"
 )
 
-DB_CHARACTERS_UPDATES_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/characters/updates/"
+DB_WORLD_UPDATE_PATHS+=(
+	$TRANSM_PATH_ROOT"/data/sql/updates/world/"
 )
 
-DB_WORLD_UPDATES_PATHS+=(
-	"$MOD_COLONIST_ROOT/sql/world/updates/"
-)

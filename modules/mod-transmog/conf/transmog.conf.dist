@@ -55,6 +55,10 @@
 #        Description: A list of item entries that are NOT allowed for transmogrification
 #                     Example: "25 35674 5623"
 #        Default:    ""
+#
+#    Transmogrification.EnablePortable
+#        Description: Enables / Disables the portable transmogrification NPC.
+#        Default:    1
 
 Transmogrification.Enable = 1
 Transmogrification.UseCollectionSystem = 1
@@ -63,11 +67,13 @@ Transmogrification.TrackUnusableItems = 1
 Transmogrification.RetroActiveAppearances = 1
 Transmogrification.ResetRetroActiveAppearancesFlag = 0
 
-Transmogrification.EnableTransmogInfo = 0
+Transmogrification.EnableTransmogInfo = 1
 Transmogrification.TransmogNpcText = 601083
 
 Transmogrification.Allowed = ""
 Transmogrification.NotAllowed = ""
+
+Transmogrification.EnablePortable = 1
 
 #
 #    COPPER COST
@@ -101,8 +107,8 @@ Transmogrification.CopperCost = 0
 #        Default:    1
 
 Transmogrification.RequireToken = 0
-Transmogrification.TokenEntry = 37711
-Transmogrification.TokenAmount = 80
+Transmogrification.TokenEntry = 49426
+Transmogrification.TokenAmount = 1
 
 #
 #    REQUIREMENTS
@@ -149,6 +155,14 @@ Transmogrification.TokenAmount = 80
 #
 #    Transmogrification.AllowMixedWeaponTypes
 #        Description: Allow axe to be transmogrified with dagger for example
+#        Possible options:
+#            Default:    0 - STRICT - Fully restricted like original Blizzard 4.3 transmog - Weapons must be the same weapon type (exceptions: Guns, Crossbows, or Bows)
+#                        1 - MODERN - Like later retail WoW, allow swords to be transmogged to axes, etc.
+#                        2 - FULL - No restrictions, allow any weapon to be transmogrified to any other weapon
+#
+#    Transmogrification.AllowMixedWeaponHandedness
+#        Description: Normally main-hand and off-hand weapons can only be transmogged to this same type. Enable to remove this restriction.
+#                     Not necessary when AllowMixedWeaponTypes is set to FULL.
 #        Default:    0
 #
 #    Transmogrification.AllowFishingPoles
@@ -195,6 +209,7 @@ Transmogrification.AllowTradeable = 0
 
 Transmogrification.AllowMixedArmorTypes = 0
 Transmogrification.AllowMixedWeaponTypes = 0
+Transmogrification.AllowMixedWeaponHandedness = 0
 Transmogrification.AllowFishingPoles = 0
 
 Transmogrification.IgnoreReqRace = 0
@@ -235,11 +250,45 @@ Transmogrification.IgnoreReqStats = 0
 Transmogrification.EnableSets = 1
 Transmogrification.MaxSets = 10
 
-Transmogrification.EnableSetInfo = 0
+Transmogrification.EnableSetInfo = 1
 Transmogrification.SetNpcText = 601084
 
 Transmogrification.SetCostModifier = 3.0
 Transmogrification.SetCopperCost = 0
+
+#
+#    TRANSMOG PLUS
+#
+#    Transmogrification.EnablePlus
+#        Description: Enables/Disables TransmogPlus.
+#        Default:     0
+#
+#    Transmogrification.MembershipLevels
+#        Description: Membership levels ID from acore_cms_subscriptions.
+#        Example:     Transmogrification.MembershipLevels = "1,2,3"
+#        Default:     ""
+#
+#    Transmogrification.MembershipLevelsLegendary
+#        Description: Membership levels ID from acore_cms_subscriptions that define the eligibility for legendary items
+#        Example:     Transmogrification.MembershipLevelsLegendary = "1,2,3"
+#        Default:     ""
+#
+#    Transmogrification.MembershipLevelsPet
+#        Description: Membership levels ID from acore_cms_subscriptions that define the eligibility for transmog pet
+#        Example:     Transmogrification.MembershipLevelsPet = "1,2,3"
+#        Default:     ""
+#
+#    Transmogrification.PetSpellId
+#        Description: The ID used by the transmog pet in the spell_dbc table
+#        Example:     Transmogrification.PetSpellId = 2000100
+#        Default:     2000100
+#
+
+Transmogrification.EnablePlus = 0
+Transmogrification.MembershipLevels = ""
+Transmogrification.MembershipLevelsLegendary = ""
+Transmogrification.MembershipLevelsPet = ""
+Transmogrification.PetSpellId = 2000100
 
 #
 ###################################################################################################

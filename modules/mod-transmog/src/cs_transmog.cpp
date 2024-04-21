@@ -21,6 +21,7 @@
 #include "ScriptMgr.h"
 #include "Transmogrification.h"
 #include "Tokenize.h"
+#include "DatabaseEnv.h"
 
 using namespace Acore::ChatCommands;
 
@@ -39,8 +40,10 @@ public:
 
         static ChatCommandTable transmogTable =
         {
-            { "add", addCollectionTable },
-            { "",    HandleDisableTransMogVisual, SEC_PLAYER,    Console::No },
+            { "add",      addCollectionTable                                        },
+            { "",         HandleDisableTransMogVisual,   SEC_PLAYER,    Console::No },
+            { "sync",     HandleSyncTransMogCommand,     SEC_PLAYER,    Console::No },
+            { "portable", HandleTransmogPortableCommand, SEC_PLAYER,    Console::No },
         };
 
         static ChatCommandTable commandTable =
@@ -49,6 +52,19 @@ public:
         };
 
         return commandTable;
+    }
+
+    static bool HandleSyncTransMogCommand(ChatHandler* handler)
+    {
+        Player* player = handler->GetPlayer();
+        uint32 accountId = player->GetSession()->GetAccountId();
+        handler->SendSysMessage(LANG_CMD_TRANSMOG_BEGIN_SYNC);
+        for (uint32 itemId : sTransmogrification->collectionCache[accountId])
+        {
+            handler->PSendSysMessage("TRANSMOG_SYNC:%u", itemId);
+        }
+        handler->SendSysMessage(LANG_CMD_TRANSMOG_COMPLETE_SYNC);
+        return true;
     }
 
     static bool HandleDisableTransMogVisual(ChatHandler* handler, bool hide)
@@ -127,13 +143,21 @@ public:
         tempStream << std::hex << ItemQualityColors[itemTemplate->Quality];
         std::string itemQuality = tempStream.str();
         std::string itemName = itemTemplate->Name1;
+
+        if (target) {
+            // get locale item name
+            int loc_idex = target->GetSession()->GetSessionDbLocaleIndex();
+            if (ItemLocale const* il = sObjectMgr->GetItemLocale(itemId))
+                ObjectMgr::GetLocaleString(il->Name, loc_idex, itemName);
+        }
+
         std::string playerName = player->GetName();
         std::string nameLink = handler->playerLink(playerName);
 
         if (sTransmogrification->AddCollectedAppearance(accountId, itemId))
         {
             // Notify target of new item in appearance collection
-            if (target && !(target->GetPlayerSetting("mod-transmog", SETTING_HIDE_TRANSMOG).value))
+            if (target && !(target->GetPlayerSetting("mod-transmog", SETTING_HIDE_TRANSMOG).value) && !sTransmogrification->CanNeverTransmog(itemTemplate))
             {
                 ChatHandler(target->GetSession()).PSendSysMessage(R"(|c%s|Hitem:%u:0:0:0:0:0:0:0:0|h[%s]|h|r has been added to your appearance collection.)", itemQuality.c_str(), itemId, itemName.c_str());
             }
@@ -270,6 +294,35 @@ public:
 
         return true;
     }
+
+    static bool HandleTransmogPortableCommand(ChatHandler* handler)
+    {
+        if (!sTransmogrification->IsPortableNPCEnabled)
+        {
+            handler->GetPlayer()->SendSystemMessage("The portable transmogrification NPC is disabled.");
+            handler->SetSentErrorMessage(true);
+            return true;
+        }
+
+        if (Player* player = PlayerIdentifier::FromSelf(handler)->GetConnectedPlayer())
+        {
+
+            if (sTransmogrification->IsTransmogPlusEnabled) {
+                if (sTransmogrification->isTransmogPlusPetEligible(player->GetGUID())) {
+                    player->CastSpell((Unit*)nullptr, sTransmogrification->PetSpellId, true);
+                    return true;
+                }
+            }
+
+            if (player->GetSession()->GetSecurity() < SEC_MODERATOR) {
+                return true;
+            }
+
+            player->CastSpell((Unit*)nullptr, sTransmogrification->PetSpellId, true);
+        }
+
+        return true;
+    };
 };
 
 void AddSC_transmog_commandscript()
