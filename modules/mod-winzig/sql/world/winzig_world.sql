@@ -184,20 +184,25 @@ UPDATE `item_template` SET `stackable` = 250 WHERE `entry` IN (
     43489 -- Mohawk Grenade
 );
 
+-- Fix for segmentation fault
 DELETE FROM `creature_model_info` WHERE `DisplayID` = 7359065;
-INSERT INTO `creature_model_info` (`DisplayID`, `CombatReach`, `Gender`)
-VALUES (7359065, 1.5, 1);
+
+-- Delete Kwixal
+DELETE FROM `creature` WHERE `guid` = 564;
 
 DELETE FROM `creature_template` WHERE `entry` = 5126979;
 INSERT INTO `creature_template` (
-    `entry`, `modelid1`, `name`, `subname`, `gossip_menu_id`, `minlevel`,
+    `entry`, `name`, `subname`, `gossip_menu_id`, `minlevel`,
     `maxlevel`, `faction`, `npcflag`, `DamageModifier`, `BaseAttackTime`,
     `RangeAttackTime`, `unit_class`, `unit_flags`, `unit_flags2`, `type`,
     `flags_extra`, `ScriptName`, `VerifiedBuild`
 ) VALUES (
-    5126979, 11689, 'Winzig', 'Wobbling Goblin', 0, 60, 60, 35, 129, 1,
+    5126979, 'Winzig', 'Wobbling Goblin', 0, 60, 60, 35, 129, 1,
     2000, 2000, 4, 768, 2048, 7, 2, 'npc_winzig', 12340
 );
+DELETE FROM `creature_template_model` WHERE `CreatureID` = 5126979;
+INSERT INTO `creature_template_model` (`CreatureID`, `CreatureDisplayID`)
+VALUES (5126979, 11689);
 -- Replace Landro Longshot.
 DELETE FROM `creature` WHERE `guid` = 565;
 INSERT INTO `creature` (

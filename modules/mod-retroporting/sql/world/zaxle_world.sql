@@ -37,14 +37,17 @@ set @slot_head = 6007;
 -- Create Zaxle
 DELETE FROM `creature_template` WHERE `entry` = @zaxle_entry_id;
 INSERT INTO `creature_template` (
-    `entry`, `modelid1`, `name`, `subname`, `gossip_menu_id`, `minlevel`,
+    `entry`, `name`, `subname`, `gossip_menu_id`, `minlevel`,
     `maxlevel`, `faction`, `npcflag`, `DamageModifier`, `BaseAttackTime`,
     `RangeAttackTime`, `unit_class`, `unit_flags`, `unit_flags2`, `type`,
     `flags_extra`, `ScriptName`, `VerifiedBuild`
 ) VALUES (
-    @zaxle_entry_id, @zaxle_display_id, 'Zaxle', 'Wobbling Goblin', 0, 60, 60, 35, 129, 1,
+    @zaxle_entry_id, 'Zaxle', 'Wobbling Goblin', 0, 60, 60, 35, 129, 1,
     2000, 2000, 4, 768, 2048, 7, 2, '', 12340
 );
+DELETE FROM `creature_template_model` WHERE `CreatureID` = @zaxle_entry_id;
+INSERT INTO `creature_template_model` (`CreatureID`, `CreatureDisplayID`)
+VALUES (@zaxle_entry_id, @zaxle_display_id);
 
 -- Replace one of Winzig's bodyguards with Zaxle
 DELETE FROM `creature` WHERE `guid` = @zaxle_guid;
